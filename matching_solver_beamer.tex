@@ -1,0 +1,303 @@
+\documentclass[aspectratio=169]{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\definecolor{codebg}{RGB}{247,247,247}
+\definecolor{darkblue}{RGB}{20,50,120}
+\definecolor{darkgreen}{RGB}{0,110,60}
+\definecolor{darkred}{RGB}{140,30,30}
+
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  framerule=0.2pt,
+  rulecolor=\color{black!30},
+  breaklines=true,
+  columns=fullflexible,
+  keywordstyle=\color{darkblue},
+  commentstyle=\color{darkgreen},
+  stringstyle=\color{darkred},
+  showstringspaces=false
+}
+
+\title{Using the Python ILP Matching Program}
+\author{Quick guide for tuning and interpreting results}
+\date{}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{What the program does}
+\begin{itemize}
+  \item Reads one Excel sheet with mixed respondents: \textbf{students} and \textbf{locals}.
+  \item Builds feasible student--local pairs using \textbf{hard constraints}.
+  \item Computes a weighted compatibility score for each feasible pair.
+  \item Solves a \textbf{one-to-one Integer Linear Program}.
+  \item Default objective is \textbf{lexicographic}:
+  \begin{enumerate}
+    \item maximize number of matches,
+    \item then maximize the \textbf{minimum selected score} (Chebychev idea),
+    \item then slightly prefer larger total score.
+  \end{enumerate}
+\end{itemize}
+\vspace{0.3em}
+\textbf{Main outputs:} \texttt{matches.csv} and \texttt{*.diagnostics.csv}
+\end{frame}
+
+\begin{frame}{Optimization model in one slide}
+Binary variable:
+\[
+ x_{ij}=\begin{cases}
+ 1 & \text{if student } i \text{ is matched with local } j,\\
+ 0 & \text{otherwise.}
+ \end{cases}
+\]
+Chebychev helper variable:
+\[
+ t \ge 0 \quad \text{(minimum score among selected pairs)}
+\]
+Constraints:
+\[
+\sum_j x_{ij} \le 1 \quad \forall i, \qquad \sum_i x_{ij} \le 1 \quad \forall j
+\]
+\[
+ t \le s_{ij} + (1-x_{ij}) \quad \forall (i,j) \text{ feasible}
+\]
+Default solve order:
+\begin{enumerate}
+  \item maximize $\sum_{i,j} x_{ij}$,
+  \item among those, maximize $t$,
+  \item add a tiny tie-break on $\sum s_{ij}x_{ij}$.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Hard constraints: where to change them}
+The hard constraints are handled before the ILP by three functions:
+\begin{itemize}
+  \item \texttt{gender\_compatible(...)}
+  \item \texttt{pets\_compatible(...)}
+  \item \texttt{must\_match\_ok(...)}
+\end{itemize}
+A pair is feasible only if \textbf{all} of these return \texttt{True} in the required directions.
+
+\vspace{0.4em}
+\textbf{Typical edits:}
+\begin{itemize}
+  \item Make a rule stricter: return \texttt{False} for more cases.
+  \item Make a rule softer: treat more patterns as \texttt{no preference}.
+  \item Temporary debugging: use CLI flags
+  \texttt{--relax-gender}, \texttt{--relax-pets}, \texttt{--relax-mustmatch}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Example: changing hard-constraint boundaries}
+\textbf{Gender / pets / must-match are rule-based.}
+Change the boundary by editing the condition logic, for example:
+
+\begin{lstlisting}[language=Python]
+def pets_compatible(a_pets, b_pets, relax=False):
+    if relax:
+        return True
+    if has_no_pref(a_pets) or has_no_pref(b_pets):
+        return True
+
+    bad_words = {"severe allergies", "cannot have pets"}
+    has_pets_words = {"has cat", "has dog", "has pets"}
+
+    if (norm_set(a_pets) & bad_words and norm_set(b_pets) & has_pets_words):
+        return False
+    return True
+\end{lstlisting}
+
+To soften the boundary, reduce \texttt{bad\_words}. To tighten it, add more conflict keywords.
+\end{frame}
+
+\begin{frame}{Chebychev weights: where to change them}
+The weighted score is computed from named components:
+\begin{center}
+\begin{tabular}{lr}
+\toprule
+Component & Default weight \\
+\midrule
+Profile & 34 \\
+Hobbies & 23 \\
+Appreciate & 10 \\
+Languages & 9 \\
+Age & 9 \\
+Info & 7 \\
+Degree & 5 \\
+Field & 3 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+In code, edit:
+\begin{itemize}
+  \item \texttt{DEFAULT\_WEIGHTS = \{...\}}
+  \item or override at runtime with \texttt{--weights}
+\end{itemize}
+The program normalizes the numbers internally, so they only need to be \textbf{relative priorities}.
+\end{frame}
+
+\begin{frame}[fragile]{Example: changing weights}
+\textbf{Inside the script:}
+\begin{lstlisting}[language=Python]
+DEFAULT_WEIGHTS = {
+    "profile": 34,
+    "hobbies": 23,
+    "appreciate": 10,
+    "languages": 9,
+    "age": 9,
+    "info": 7,
+    "degree": 5,
+    "field": 3,
+}
+\end{lstlisting}
+
+\textbf{At the command line:}
+\begin{lstlisting}[language=bash]
+python main.py --excel "Refined Attributes with options.xlsx" \
+  --weights=hobbies=30,profile=28
+\end{lstlisting}
+
+This keeps the same model but shifts relative emphasis before normalization.
+\end{frame}
+
+\begin{frame}{How the input matrix is specified}
+The program expects one Excel sheet, usually named:
+\[
+\texttt{the refined data}
+\]
+Important columns include:
+\begin{itemize}
+  \item IDs and status: \texttt{Identification}, \texttt{My status}
+  \item matching attributes: profile, hobbies, languages, age, pets
+  \item study descriptors: degree and field
+  \item must-match fields: criteria 1/2 and their specs
+\end{itemize}
+
+\textbf{Important preprocessing:}
+\begin{itemize}
+  \item remove rows marked \texttt{REMOVED}
+  \item drop the legend/options row below the header
+  \item normalize spaces and multi-value separators
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Minimal input structure}
+Each row is one person. The solver first classifies rows as \textbf{student} or \textbf{local}.
+A simplified conceptual matrix is:
+
+\begin{center}
+\begin{tabular}{>{\ttfamily}p{2.5cm} p{8.2cm}}
+\toprule
+Column & Meaning \\
+\midrule
+Identification & unique ID \\
+My status & student or local text \\
+My profile & own type / profile \\
+My hobbies and interests & own hobbies \\
+Hobbies and interests I/we appreciate & preferred hobbies in partner \\
+My gender identity & own gender \\
+Friend's gender identity & acceptable partner genders \\
+The must match criteria 1/2 & hard criteria names \\
+Specs for my criteria 1/2 & acceptable values \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Think of the input as a respondent table from which the program builds a \textbf{pairwise compatibility matrix}.
+\end{frame}
+
+\begin{frame}{How the scores are computed}
+For each feasible pair, the program computes component similarities in $[0,1]$.
+Typical examples:
+\begin{itemize}
+  \item \textbf{Profile:} Jaccard overlap of profile categories
+  \item \textbf{Hobbies:} own hobbies vs partner's appreciated hobbies, both directions
+  \item \textbf{Languages:} overlap of native and usable languages
+  \item \textbf{Age:} soft penalty by distance, reduced if outside stated preference range
+\end{itemize}
+Final score:
+\[
+s_{ij} = \sum_k w_k c_{ij}^{(k)}
+\]
+where $w_k$ are normalized Chebychev weights and $c_{ij}^{(k)}$ are component similarities.
+\end{frame}
+
+\begin{frame}{How to read the results}
+\textbf{1. Matches file:} \texttt{matches.csv}
+\begin{itemize}
+  \item one selected pair per row
+  \item contains IDs and component scores
+  \item \texttt{score} is the final weighted compatibility
+\end{itemize}
+
+\textbf{2. Diagnostics file:} \texttt{matches.diagnostics.csv}
+\begin{itemize}
+  \item one candidate pair per row
+  \item tells which hard constraints passed or failed
+  \item useful for explaining why feasibility is low
+\end{itemize}
+
+\textbf{3. Terminal statistics:}
+\begin{itemize}
+  \item number of students, locals, candidate pairs
+  \item pass rates of each hard constraint
+  \item unmatched counts after optimization
+  \item min / avg / max score of selected pairs
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Typical workflow}
+\begin{enumerate}
+  \item Prepare the Excel input table.
+  \item Run the program:
+\begin{lstlisting}[language=bash]
+python main.py --excel "Refined Attributes with options.xlsx" \
+  --objective lexi --verbose
+\end{lstlisting}
+  \item Inspect terminal statistics.
+  \item Open \texttt{matches.csv} for final pairs.
+  \item Open diagnostics if too many people remain unmatched.
+  \item Adjust hard constraints or weights and rerun.
+\end{enumerate}
+
+\vspace{0.4em}
+\textbf{Rule of thumb:}
+\begin{itemize}
+  \item too few feasible pairs $\Rightarrow$ soften hard constraints
+  \item weak match quality $\Rightarrow$ adjust weights or objective priority
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Take-home message}
+\begin{itemize}
+  \item The solver separates the problem into:
+  \begin{enumerate}
+    \item \textbf{feasibility filtering} by hard constraints,
+    \item \textbf{quality scoring} by weighted components,
+    \item \textbf{ILP optimization} over feasible pairs.
+  \end{enumerate}
+  \item Hard constraints control \textbf{who may be matched}.
+  \item Chebychev weights control \textbf{what a good match means}.
+  \item \texttt{matches.csv} tells you the final solution.
+  \item \texttt{diagnostics.csv} explains why some matches were impossible.
+\end{itemize}
+\end{frame}
+
+\end{document}
