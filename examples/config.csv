@@ -1,0 +1,14 @@
+setting,value,description
+weight_profile,34,Importance of matching profile types
+weight_hobbies,23,Importance of hobbies compared with each person's preferred hobbies
+weight_appreciate,10,Importance of shared qualities appreciated in a friend
+weight_languages,9,Importance of shared native and daily-use languages
+weight_age,9,Importance of age similarity and preferred age ranges
+weight_info,7,Importance of shared information tags; free-text meaning is not interpreted
+weight_degree,5,Importance of shared degree categories
+weight_field,3,Importance of shared fields of science
+enforce_gender,TRUE,Respect both people's gender preferences
+enforce_pets,TRUE,Reject has pets paired with avoid pets
+enforce_must_match,TRUE,Require at least one supplied must-match criterion per person
+minimum_score,0,Lowest permitted score from 0 to 1; raising it can leave more people unmatched
+solver_time_limit_seconds,60,Maximum seconds for each of the three solving stages
