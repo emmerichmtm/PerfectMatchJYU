@@ -42,6 +42,8 @@
     #status { margin:18px 0 0; color:var(--muted); min-height:26px; }
     #status.error { color:#9a302c; background:#fff0ed; border:1px solid #efcec8; padding:14px 18px; border-radius:8px; }
     #status.success { color:var(--green); }
+    #status.warning { color:#7a4b00; background:#fff6e3; border:1px solid #ecd6a6; padding:14px 18px; border-radius:8px; }
+    .stat.warning { border-color:#ecd6a6; background:#fff6e3; }
     #results { border-top:1px solid var(--line); margin-top:32px; padding-top:28px; }
     .result-title { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; }
     .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:20px 0; }
@@ -168,7 +170,11 @@
       byId('pairs').append(rows); byId('report').textContent = latest.report;
       byId('no-matches').hidden = latest.pairs.length !== 0;
       byId('results').hidden = false;
-      status('Matching complete. Review the suggestions below and download both files.', 'success');
+      const missing = latest.summary.unmatched_students;
+      byId('students').parentElement.classList.toggle('warning', missing > 0);
+      byId('report').parentElement.open = missing > 0;
+      if (missing > 0) status('Matching complete, but ' + missing + (missing === 1 ? ' student' : ' students') + ' could not be matched under these rules. The report below explains why and what to relax.', 'warning');
+      else status('Matching complete.' + (latest.pairs.length ? ' Every student has a suggested partner.' : '') + ' Review the suggestions below and download both files.', 'success');
     } catch (error) {
       clearResults();
       status(error instanceof TypeError ? 'Cannot reach the app. Start PerfectMatch again and choose the files again.' : error.message, 'error');

@@ -366,6 +366,40 @@ def solve_lexi(students, locals_, edges_df, time_limit_seconds=60):
     return edges_df[[key in chosen for key in zip(edges_df.s_id, edges_df.l_id)]].copy()
 
 
+def competing_groups(edges_df, selected_pairs):
+    """Group unmatched students who have eligible partners with the students they compete with.
+
+    Starting from each unmatched student, follow eligible locals and the students selected for
+    them. The selection has the maximum number of pairs, so every local reached is taken and each
+    group has fewer eligible locals than students (Hall's theorem): no allocation matches them all.
+    Returns (students, locals) pairs of sets; overlapping groups are merged.
+    """
+    partners = {}
+    for s, l in zip(edges_df.s_id, edges_df.l_id):
+        partners.setdefault(s, set()).add(l)
+    taken_by = {l: s for s, l in selected_pairs}
+    matched = set(taken_by.values())
+    groups = []
+    for root in partners:
+        if root in matched:
+            continue
+        students, locals_, queue = {root}, set(), [root]
+        while queue:
+            for l in partners[queue.pop()] - locals_:
+                locals_.add(l)
+                if l not in taken_by:
+                    raise RuntimeError("Internal check failed: the selected pairs are not a maximum matching.")
+                if taken_by[l] not in students:
+                    students.add(taken_by[l])
+                    queue.append(taken_by[l])
+        for other in [g for g in groups if g[0] & students]:
+            groups.remove(other)
+            students |= other[0]
+            locals_ |= other[1]
+        groups.append((students, locals_))
+    return groups
+
+
 def main():
     ap = argparse.ArgumentParser(description="ILP matching solver with Chebyshev scoring")
     ap.add_argument("--input", required=True, help="CSV or XLSX input file")

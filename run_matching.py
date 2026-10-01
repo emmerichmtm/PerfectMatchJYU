@@ -179,18 +179,45 @@ def make_report(config_path, problem_path, config, students, locals_, diagnostic
     def ids(frame):
         return frame[core.COL_ID].tolist()
 
-    def unmatched(frame, column, edge_column):
+    groups = core.competing_groups(edges, zip(result.student_id, result.local_id)) if not edges.empty else []
+
+    def blocked(identifier, column, others):
+        rows = diagnostics[diagnostics[column] == identifier] if not diagnostics.empty else diagnostics
+        if rows.empty:
+            return "no eligible partner under these settings"
+        gender = ~(rows.gender_ok_s_pref_vs_l & rows.gender_ok_l_pref_vs_s)
+        must = ~(rows.mustmatch_ok_student_vs_local & rows.mustmatch_ok_local_vs_student)
+        low = rows.mandatory_pass & (rows.score < config["minimum_score"])
+        return (f"no eligible partner under these settings; of {len(rows)} {others}, failed checks: "
+                f"gender {int(gender.sum())}, pets {int((~rows.pets_ok).sum())}, "
+                f"must-match {int(must.sum())}, below minimum_score {int(low.sum())}")
+
+    def competing(identifier):
+        group, options = next(g for g in groups if identifier in g[0])
+        return (f"competes with {', '.join(sorted(group - {identifier}))} for the same locals; "
+                f"these {len(group)} students can only be paired with {', '.join(sorted(options))}, "
+                f"so {len(group) - len(options)} of them must remain unmatched under these rules")
+
+    def unmatched(frame, column, edge_column, others):
         selected = set(result[column])
         eligible = set(edges[edge_column]) if not edges.empty else set()
         remaining = [v for v in ids(frame) if v not in selected]
         lines = []
         for identifier in remaining:
-            reason = "no eligible partner under these settings" if identifier not in eligible else "eligible partners existed; one-to-one allocation left this person unmatched"
+            if identifier not in eligible:
+                reason = blocked(identifier, column, others)
+            elif column == "student_id":
+                reason = competing(identifier)
+            else:
+                reason = "eligible partners existed; one-to-one allocation left this person unmatched"
             lines.append(f"  {identifier}: {reason}")
         return remaining, lines
 
-    unmatched_s, details_s = unmatched(students, "student_id", "s_id")
-    unmatched_l, details_l = unmatched(locals_, "local_id", "l_id")
+    unmatched_s, details_s = unmatched(students, "student_id", "s_id", "locals")
+    unmatched_l, details_l = unmatched(locals_, "local_id", "l_id", "students")
+    if unmatched_s:
+        details_s.append("  To match every student: relax a must-match, gender or pets rule for a student "
+                         "named above, lower minimum_score, or add a suitable local.")
     weights = core.normalize_weights({k: config[f"weight_{k}"] for k in core.DEFAULT_WEIGHTS})
     lines = ["PERFECTMATCH JYU - MATCHING REPORT", "Status: SUCCESS",
              f"Run time (UTC): {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}",
@@ -201,6 +228,11 @@ def make_report(config_path, problem_path, config, students, locals_, diagnostic
              f"Candidate pairs: {len(diagnostics)}; eligible pairs: {len(edges)}",
              f"Selected matches: {len(result)}",
              f"Unmatched students: {len(unmatched_s)}; unmatched locals: {len(unmatched_l)}"]
+    if unmatched_s:
+        lines.append(f"ATTENTION: {len(unmatched_s)} of {len(students)} students could not be matched "
+                     "under these rules. See UNMATCHED PARTICIPANTS.")
+    elif len(students):
+        lines.append(f"All {len(students)} students are matched.")
     if not result.empty:
         lines.append(f"Score minimum / average / maximum: {result.score.min():.3f} / {result.score.mean():.3f} / {result.score.max():.3f}")
     else:
@@ -264,6 +296,10 @@ def run(config_path: Path, problem_path: Path, result_path: Path, report_path: P
     if not quiet:
         print(f"SUCCESS: {len(result)} matches; {len(students) - len(result)} unmatched students; "
               f"{len(locals_) - len(result)} unmatched locals.")
+        missing = len(students) - len(result)
+        if missing:
+            print(f"ATTENTION: {missing} student{'s' if missing > 1 else ''} could not be matched; "
+                  "the report explains why.")
         print(f"Results: {result_path.resolve()}\nReport:  {report_path.resolve()}")
     return result
 

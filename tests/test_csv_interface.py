@@ -1,6 +1,7 @@
 import csv
 import itertools
 from pathlib import Path
+import random
 import subprocess
 import sys
 import tempfile
@@ -151,6 +152,37 @@ class CsvInterfaceTests(unittest.TestCase):
         self.configure(enforce_must_match="FALSE")
         self.assertEqual(len(self.run_case()), 1)
 
+    def test_round_of_21_students_and_28_locals_matches_every_student(self):
+        self.problem.write_bytes((ROOT / "examples/problem_21x28.csv").read_bytes())
+        result = self.run_case()
+        students = {r["id"] for r in self.rows(self.problem) if r["side"] == "student"}
+        self.assertEqual(len(students), 21)
+        self.assertEqual(set(result.student_id), students)
+        self.assertEqual(result.attrs["summary"]["unmatched_locals"], 7)
+        self.assertIn("All 21 students are matched.", self.report.read_text(encoding="utf-8"))
+
+    def test_unmatched_student_report_names_competing_group(self):
+        rows = self.rows(self.problem)
+        for row in rows:
+            if row["id"] in {"S01", "S03"}:  # Only L03 lists art.
+                row.update(must_match_1="hobbies", must_match_1_values="art",
+                           must_match_2="", must_match_2_values="")
+        self.write(self.problem, rows)
+        (left_out,) = {"S01", "S03"} - set(self.run_case().student_id)
+        rival = ({"S01", "S03"} - {left_out}).pop()
+        report = self.report.read_text(encoding="utf-8")
+        self.assertIn("ATTENTION: 1 of 3 students could not be matched", report)
+        self.assertIn(f"{left_out}: competes with {rival} for the same locals; these 2 students can only "
+                      "be paired with L03, so 1 of them must remain unmatched", report)
+
+    def test_unmatched_student_without_partners_lists_failed_checks(self):
+        rows = self.rows(self.problem)
+        rows[0]["preferred_gender"] = "agender"
+        self.write(self.problem, rows)
+        self.assertNotIn("S01", set(self.run_case().student_id))
+        self.assertIn("S01: no eligible partner under these settings; of 4 locals, failed checks: gender 4,",
+                      self.report.read_text(encoding="utf-8"))
+
     def test_inputs_cannot_be_overwritten(self):
         original = self.problem.read_bytes()
         with self.assertRaisesRegex(ValueError, "four different"):
@@ -187,6 +219,23 @@ class SolverTests(unittest.TestCase):
             self.assertEqual(len(result), expected[0])
             self.assertAlmostEqual(result.score.min(), expected[1])
             self.assertAlmostEqual(result.score.sum(), expected[2])
+
+    def test_competing_groups_have_fewer_locals_than_students(self):
+        rng = random.Random(7)
+        s_ids, l_ids = [f"S{i}" for i in range(6)], [f"L{i}" for i in range(5)]
+        for _ in range(8):
+            edges = pd.DataFrame([dict(s_id=s, l_id=l, score=rng.random())
+                                  for s in s_ids for l in l_ids if rng.random() < 0.3])
+            result = core.solve_lexi(pd.DataFrame({core.COL_ID: s_ids}), pd.DataFrame({core.COL_ID: l_ids}), edges)
+            selected = list(zip(result.s_id, result.l_id))
+            stranded = set(edges.s_id) - {s for s, _ in selected}
+            groups = core.competing_groups(edges, selected)
+            explained = [s for group, _ in groups for s in group]
+            self.assertEqual(len(explained), len(set(explained)))
+            self.assertLessEqual(stranded, set(explained))
+            for group, options in groups:
+                self.assertEqual(set(edges[edges.s_id.isin(group)].l_id), options)
+                self.assertEqual(len(options), len(group) - len(group & stranded))
 
     def test_nonoptimal_solver_status_is_not_reported_as_success(self):
         students = pd.DataFrame({core.COL_ID: ["S1"]})

@@ -174,7 +174,7 @@ The time limit applies separately to three solving stages. A 60-second setting c
 
 The programme first tries to match as many people as possible. Among solutions with that number of pairs, it improves the lowest pair score, then the total score. Each person appears in at most one selected pair. Someone may not receive their individually highest-scoring partner because partners cannot be shared. Equally good solutions may produce different pairs.
 
-The report distinguishes people with no eligible partner from people whose eligible partners were allocated elsewhere. Pair-check failure counts can overlap: do not add them together as a total. With no selected pairs, the result CSV still has its headings and the report explains the situation.
+The report distinguishes people with no eligible partner from people whose eligible partners were allocated elsewhere. Its summary states whether every student is matched; if not, it shows an mbox{ATTENTION} line and gives each unmatched student a reason: how many locals fail each check, or which students compete for too few eligible locals (for example, three students who can only be paired with the same two locals). Relax a rule for one of the students named, lower the minimum score, or add a suitable local, then run again. Pair-check failure counts can overlap: do not add them together as a total. With no selected pairs, the result CSV still has its headings and the report explains the situation.
 
 \section*{If something goes wrong}
 \small
