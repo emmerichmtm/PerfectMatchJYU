@@ -1,0 +1,222 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=20mm,headheight=15pt]{geometry}
+\usepackage{array,booktabs,tabularx}
+\usepackage{xcolor,enumitem,fancyhdr,hyperref}
+\definecolor{jyu}{HTML}{183C59}
+\definecolor{pale}{HTML}{EFF4F7}
+\hypersetup{colorlinks=true,urlcolor=jyu,linkcolor=jyu,pdftitle={PerfectMatch JYU: Staff Manual},pdfauthor={PerfectMatch JYU}}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\small\sffamily\color{jyu}PerfectMatch JYU}
+\fancyhead[R]{\small\sffamily Staff manual}
+\fancyfoot[L]{\small CSV interface \textbullet\ October 2026}
+\fancyfoot[R]{\small\thepage}
+\setlength{\parindent}{0pt}\setlength{\parskip}{5pt}\setlength{\emergencystretch}{1em}
+\setlength{\tabcolsep}{5pt}\renewcommand{\arraystretch}{1.18}
+\setlist{nosep,leftmargin=1.5em,topsep=4pt}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+% Keep command-line double hyphens literal when copying from the PDF.
+\ExplSyntaxOn
+\NewDocumentCommand{\file}{m}{
+  \group_begin:
+  \ttfamily
+  \tl_set:Nx \l_tmpa_tl { \tl_to_str:n {#1} }
+  \tl_replace_all:Nnn \l_tmpa_tl { - } { \hbox{-} }
+  \tl_use:N \l_tmpa_tl
+  \group_end:
+}
+\ExplSyntaxOff
+\newcommand{\heading}[2]{\vspace*{1mm}{\Large\sffamily\bfseries\color{jyu}#1\par}{\large\sffamily #2\par}\vspace{2mm}}
+\newcommand{\note}[1]{\par\smallskip\colorbox{pale}{\parbox{\dimexpr\linewidth-2\fboxsep}{\strut #1\strut}}\par\smallskip}
+\makeatletter\renewcommand{\section}{\@startsection{section}{1}{0pt}{1.5ex plus .3ex}{.8ex}{\large\bfseries}}\makeatother
+\begin{document}
+\heading{1. Start here}{Match students and local participants using two spreadsheets}
+This tool suggests one-to-one matches for the programme. You edit two CSV files in Excel or another spreadsheet application, run the supplied launcher, and review two output files. You do not need to write Python or understand mathematical optimisation.
+
+\par\noindent\begin{tabularx}{\linewidth}{@{}p{25mm}p{48mm}Y@{}}
+\toprule
+\textbf{Purpose} & \textbf{File} & \textbf{What it contains}\\\midrule
+Input & \file{input/config.csv} & Weights and matching settings.\\
+Input & \file{input/problem.csv} & One row for each student or local participant.\\
+Output & \file{output/result.csv} & One row for each suggested pair.\\
+Output & \file{output/report.txt} & A brief explanation, counts and unmatched IDs.\\\bottomrule
+\end{tabularx}
+
+\section*{First time on a Windows computer}
+\begin{enumerate}
+\item Download the project from \href{https://github.com/emmerichmtm/PerfectMatchJYU}{the project's GitHub page}: choose \textbf{Code}, then \textbf{Download ZIP}. Right-click the ZIP and choose \textbf{Extract All}. Work in the extracted folder.
+\item Double-click \file{setup_windows.bat}. It prepares a private working environment, downloads the required software packages, and copies the sample CSV files into the \file{input} folder. Internet access is needed for setup.
+\item If setup says Python is missing, ask your IT colleague to complete page 6. Routine use afterwards needs no commands or Python editing.
+\item Wait for \textbf{Setup complete}. Setup keeps any existing input files, so running it again does not replace your participant list.
+\end{enumerate}
+
+\section*{Try the included example}
+Leave the sample inputs unchanged and double-click \file{run_matching.bat}. Wait until the window says \textbf{SUCCESS}. Open \file{output/report.txt} first, then \file{output/result.csv}.
+\begin{center}\begin{tabular}{lll}
+\toprule\textbf{Student} & \textbf{Local} & \textbf{Score, rounded}\\\midrule
+S01 & L01 & 0.724\\ S02 & L02 & 0.662\\ S03 & L03 & 0.794\\\bottomrule
+\end{tabular}\end{center}
+All three students are matched. Local participant L04 remains unmatched. These are fictional example records. The unchanged template has 12 possible pairs and 8 eligible pairs.
+\note{\textbf{For each real run:} edit the two inputs, save and close them, double-click the launcher, check for SUCCESS, then review both outputs. Each successful run replaces the previous outputs. Copy a run's inputs and outputs to a dated folder if you want to keep it.}
+
+\newpage
+\heading{2. Prepare the participant list}{Edit \file{input/problem.csv}}
+Keep the heading row unchanged. Delete the fictional participant rows before entering real data. Each person gets one row; students and locals are in the same file. There is no need to sort the rows.
+
+\textbf{IDs:} use unique codes such as S001 and L001. Start with a letter or number; use only letters A--Z, numbers, underscores, hyphens or dots. The same code cannot be used for two people. Use \textbf{Text} format in Excel if codes contain leading zeroes. Keep names and contact details in your normal programme records, linked by ID.
+\small
+\par\noindent\begin{tabularx}{\linewidth}{@{}p{43mm}Y@{}}
+\toprule\textbf{Column heading} & \textbf{What to enter}\\\midrule
+\file{id} & A unique participant code, for example S001. Required.\\
+\file{side} & Exactly \file{student} or \file{local}. Required.\\
+\file{profile} & Profile tags, for example \file{a single person}.\\
+\file{hobbies} & The person's interests: \file{hiking; cooking}.\\
+\file{preferred_hobbies} & Interests appreciated in a friend: \file{hiking; sports}.\\
+\file{gender} & Their stated gender, using consistent wording.\\
+\file{preferred_gender} & Accepted genders separated by semicolons, or \file{no preference}.\\
+\file{native_languages} & Native languages: \file{Finnish; Swedish}.\\
+\file{languages} & Languages for daily life: \file{English; Finnish}.\\
+\file{age} & A whole number from 1 to 120, or blank if unknown.\\
+\file{preferred_age} & A range such as \file{22-35}, \file{no preference}, or blank.\\
+\file{pets} & \file{none}, \file{has pets}, \file{avoid pets}, or \file{unknown}. See page 3.\\
+\file{appreciate} & Qualities appreciated in a friend: \file{kind; reliable}.\\
+\file{information} & Comparable tags such as \file{weekends; museums}; see page 3.\\
+\file{degree} & Degree category, for example \file{Masters}. May be blank for locals.\\
+\file{field} & Field of science, for example \file{Health Sciences}.\\
+\file{must_match_1} & First required criterion, or blank. Allowed names are on page 3.\\
+\file{must_match_1_values} & Accepted values for the first criterion, or blank with its criterion.\\
+\file{must_match_2} & Optional alternative criterion.\\
+\file{must_match_2_values} & Accepted values for the alternative, or blank with its criterion.\\\bottomrule
+\end{tabularx}
+\normalsize
+\section*{Save a CSV that the tool can read}
+Choose \textbf{Save As} and a \textbf{CSV UTF-8} format. Keep the \file{.csv} ending. Accept the application's notice about keeping CSV format; only cell values are needed. Close the file before running the tool.
+
+Comma-, semicolon- and tab-separated UTF-8 files are supported, including Excel's UTF-8 marker. Put multiple items inside one cell with semicolons; let Excel add the necessary CSV quotes. Do not add or remove separator commas in a text editor. If the file opens in one column, use Excel's \textbf{Data / From Text/CSV} import and select the correct delimiter.
+
+\newpage
+\heading{3. Make preferences clear}{What the tool understands}
+\section*{Use consistent words and short tags}
+Text is compared using shared items, ignoring capital letters. \file{Hiking} and \file{hiking} match; \file{hiking} and \file{walking} do not. The tool does not translate, infer synonyms, or understand the meaning of a paragraph. Spaces around an item are ignored.
+
+Use the same vocabulary across the list. Separate items with semicolons, for example \file{music; reading; board games}. The \file{information} column also uses this comparison: different sentences about similar interests may score zero. Shared tags are easier to compare. Blank scoring fields usually provide no similarity credit; a missing age starts with an age score of 0.5 before any applicable preference adjustment.
+
+\section*{Required criteria: one passing alternative is enough}
+Use one of these exact names in \file{must_match_1} or \file{must_match_2}:
+\par\noindent\begin{tabularx}{\linewidth}{@{}p{32mm}Y@{}}
+\toprule\textbf{Criterion} & \textbf{Compared with the other person's column}\\\midrule
+\file{profile} & \file{profile}\\
+\file{hobbies} & \file{hobbies}, not preferred hobbies\\
+\file{gender} & \file{gender}\\
+\file{languages} & \file{languages} (daily use), not native languages alone\\
+\file{degree} & \file{degree}\\
+\file{field} & \file{field}\\\bottomrule
+\end{tabularx}
+
+Fill in a criterion and its values together. A person with no required criteria has all four must-match cells blank. A person with one criterion must have it satisfied. With two criteria, \textbf{at least one must pass}; the tool does not require both. Each side's requirements are checked separately.
+\note{\textbf{Example:} \file{must_match_1 = hobbies}, values \file{hiking; sports}; \file{must_match_2 = languages}, values \file{Finnish}. The partner must have hiking or sports among their hobbies, \emph{or} Finnish among their daily-use languages. The partner's own required criteria must also pass.}
+
+\section*{Gender, pets and age}
+Gender preferences must work in both directions when the check is on. A blank preference or \file{no preference} allows any gender. A blank gender cannot satisfy a partner's specific gender preference.
+
+For pets, \file{none} means no pets at home and no pet restriction recorded; \file{has pets} means pets are present; \file{avoid pets} means a partner without pets is needed; \file{unknown} means it needs checking. With the pets check on, \file{has pets} paired with \file{avoid pets} is rejected. Unknown or blank pet data does not reject a pair and is flagged in the report. This single category cannot describe complex or animal-specific situations; review those with participants.
+
+Age and preferred age ranges affect the score. They do \textbf{not} exclude a pair. A required age limit cannot be expressed as a must-match criterion in this version.
+
+\newpage
+\heading{4. Choose weights and settings}{Edit only the value column in \file{input/config.csv}}
+Keep the \file{setting}, \file{value} and \file{description} headings and all setting rows. Higher weights give that topic more influence on the score. Zero removes its influence on scoring; it does not turn off a required criterion.
+
+\small
+\par\noindent\begin{tabularx}{\linewidth}{@{}p{52mm}p{15mm}Y@{}}
+\toprule\textbf{Setting} & \textbf{Default} & \textbf{Meaning}\\\midrule
+\file{weight_profile} & 34 & Similar profile tags.\\
+\file{weight_hobbies} & 23 & Hobbies against the other's preferred hobbies.\\
+\file{weight_appreciate} & 10 & Shared qualities appreciated in a friend.\\
+\file{weight_languages} & 9 & Shared native and daily-use languages.\\
+\file{weight_age} & 9 & Age similarity and preferred ranges.\\
+\file{weight_info} & 7 & Shared information tags.\\
+\file{weight_degree} & 5 & Shared degree categories.\\
+\file{weight_field} & 3 & Shared fields of science.\\\midrule
+\file{enforce_gender} & TRUE & Apply both gender preferences.\\
+\file{enforce_pets} & TRUE & Reject pets/avoid-pets conflicts.\\
+\file{enforce_must_match} & TRUE & Apply each person's required criteria.\\
+\file{minimum_score} & 0 & Exclude pairs below this score (0 to 1).\\
+\file{solver_time_limit_seconds} & 60 & Seconds per solving stage (1 to 86400).\\\bottomrule
+\end{tabularx}
+\normalsize
+
+\section*{Change priorities one step at a time}
+The default weights add up to 100, so profile contributes 34\% of the overall score. They do not have to add up to 100: the tool scales them to shares of the total. Use non-negative numbers, with at least one weight above zero.
+
+For example, to emphasise hobbies, change \file{weight_hobbies} from 23 to 30 and \file{weight_profile} from 34 to 27. Leave the other weights unchanged. Run again and compare both matches and the unmatched list. Decimal points or decimal commas are accepted in numeric setting cells; do not use thousands separators or percentage signs.
+
+\section*{Preferences that must be respected}
+Leave the three \file{enforce_...} values at \file{TRUE} for ordinary use. \file{FALSE} switches that check off. The report names disabled checks. Use a disabled check only for a deliberate comparison and review the affected preferences before using its suggestions.
+\note{\textbf{A higher minimum score can reduce the number of matches.} At the default of 0, every pair passing the enabled checks remains eligible, including a pair scoring zero. Try changing weights before adding a score threshold. A score is not a success probability.}
+
+The time limit applies separately to three solving stages. A 60-second setting can allow about three minutes of solving, plus data processing. If the tool cannot confirm a completed solution in time, the run fails with a clear message instead of reporting an unfinished solution as successful.
+
+\newpage
+\heading{5. Review the results}{Open the report before confirming any pair}
+\begin{enumerate}
+\item Check that the launcher says \textbf{SUCCESS} and the report's run time is the run you just made. The time is in UTC and may differ from your local clock.
+\item Check counts of students, locals, eligible pairs and selected matches. Unexpected counts can indicate an input or setting mistake.
+\item Read the unmatched list and any review notes, including disabled checks or unknown pet information.
+\item Open \file{output/result.csv} and review the suggested pairs against programme records. Discuss exceptions and practical needs before confirming matches.
+\item Keep copies of both inputs and both outputs for a record of the decision.
+\end{enumerate}
+
+\section*{What the result columns mean}
+\file{student_id} and \file{local_id} identify the pair. \file{score} is the overall weighted similarity, between 0 and 1. The eight columns ending in \file{_score} show the component similarities \emph{before} weights are applied. Result values are rounded to six decimals; the report shows the minimum, average and maximum to three decimals. A score of 0.724 does not mean a 72.4\% chance of a good friendship.
+
+The programme first tries to match as many people as possible. Among solutions with that number of pairs, it improves the lowest pair score, then the total score. Each person appears in at most one selected pair. Someone may not receive their individually highest-scoring partner because partners cannot be shared. Equally good solutions may produce different pairs.
+
+The report distinguishes people with no eligible partner from people whose eligible partners were allocated elsewhere. Pair-check failure counts can overlap: do not add them together as a total. With no selected pairs, the result CSV still has its headings and the report explains the situation.
+
+\section*{If something goes wrong}
+\small
+\par\noindent\begin{tabularx}{\linewidth}{@{}p{46mm}Y@{}}
+\toprule\textbf{Message or symptom} & \textbf{What to do}\\\midrule
+Missing or renamed headings & Restore the heading row from the matching example CSV. Keep every column, even if its cells are blank.\\
+Duplicate ID or invalid value & Correct the indicated row. Use student/local, valid numbers and the listed criterion names.\\
+Encoding or CSV error & Save again as CSV UTF-8 from the spreadsheet application.\\
+Permission denied & Close the output CSV in Excel. Check that the folder is writable. Run again.\\
+No matches or too few & Check side counts, required criteria and wording; review the minimum score and unmatched reasons.\\
+Solver could not finish & Increase the time setting; ask IT if it continues.\\
+ERROR, but old outputs exist & This run failed. Do not use old files as new results; correct the error and wait for SUCCESS.\\\bottomrule
+\end{tabularx}
+\normalsize
+
+\newpage
+\heading{6. Setup and technical reference}{For the colleague who prepares the computer}
+\section*{Windows setup}
+\begin{enumerate}
+\item Install Python 3.12 from \href{https://www.python.org/downloads/}{python.org/downloads}, following your organisation's software policy. Enable \textbf{Add python.exe to PATH}. The tested runtime is Python 3.12.
+\item Extract the project ZIP into a writable folder. Run \file{setup_windows.bat}. It tries the Python 3.12 launcher first, then a \file{python} command at version 3.11 or later.
+\item Setup creates \file{.venv} in this project and installs \file{requirements.txt}. PuLP is pinned to 3.3.0 because the original API calls are incompatible with PuLP 4. The bundled CBC solver requires no separate installation on the tested Windows setup.
+\item Setup copies \file{examples/config.csv} and \file{examples/problem.csv} into \file{input} only if those destination files do not exist. Test the launcher on the sample inputs before handing over the folder.
+\end{enumerate}
+
+Internet access is needed to install packages. After setup, matching runs locally without uploading participant data. For network, certificate or installation-policy errors, use your organisation's approved installation method; do not disable certificate checks. Re-run setup after updating the project to apply its dependency requirements. Keep input backups when replacing a project folder.
+
+\section*{Command-line use (optional)}
+From the project folder after installation:
+\begin{quote}\small
+\file{python run_matching.py --config examples/config.csv}\\
+\file{  --problem examples/problem.csv --result output/result.csv}\\
+\file{  --report output/report.txt}
+\end{quote}
+The display wraps one command for readability: type it as \textbf{one line}, using the installed environment's Python. On Windows that executable is \file{.venv/Scripts/python.exe}. Without arguments the script uses the four paths on page 1. Relative paths are relative to the current working folder; the Windows launcher selects the project folder automatically.
+
+On macOS or Linux, an IT colleague can create an environment with \file{python3 -m venv .venv}, install with \file{.venv/bin/python -m pip install -r requirements.txt}, copy the example files into an \file{input} folder, and run \file{.venv/bin/python run_matching.py}. These are portability instructions; the included double-click launcher targets Windows.
+
+\section*{Verification and maintenance}
+The templates are synthetic. Working \file{input/}, generated \file{output/} and \file{.venv/} folders are excluded from Git. Do not add real participant files to the repository. The report includes SHA-256 identifiers of its inputs so a technical colleague can check which versions produced a run.
+
+Run checks with \file{python -m unittest discover -s tests -v}. They cover the example, validation, empty results, preference switches and the matching priorities. The lowest-score priority uses a numerical tolerance of $10^{-7}$.
+
+This is a self-contained A4 LaTeX document, \file{manual.tex}, with no external images or included source files. Compile with \file{pdflatex manual.tex} twice, or \file{tectonic manual.tex}. The repository includes \file{manual.pdf}. The original \file{match_solver.py --input ...} interface remains available; the shorter CSV headings here belong to \file{run_matching.py}.
+\end{document}

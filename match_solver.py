@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import math
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -113,8 +114,8 @@ def norm_set(x) -> set:
 def has_no_pref(x) -> bool:
     if pd.isna(x):
         return True
-    t = clean_text(x).lower()
-    return "no preference" in t or "no preferences" in t or "any" in t
+    t = clean_text(x).lower().rstrip(".")
+    return t in {"", "no preference", "no preferences", "any"}
 
 
 def jaccard(a: set, b: set) -> float:
@@ -146,30 +147,36 @@ def parse_age_pref(s) -> Optional[Tuple[int, int]]:
 
 
 def normalize_weights(weights: Dict[str, float]) -> Dict[str, float]:
+    if set(weights) != set(DEFAULT_WEIGHTS):
+        raise ValueError("Weights must contain exactly: " + ", ".join(DEFAULT_WEIGHTS))
+    if any(not math.isfinite(float(v)) or float(v) < 0 for v in weights.values()):
+        raise ValueError("Weights must be finite, non-negative numbers.")
     s = sum(weights.values())
+    if not math.isfinite(s) or s <= 0:
+        raise ValueError("At least one weight must be greater than zero; the total must be finite.")
     return {k: float(v) / s for k, v in weights.items()}
 
 
 def gender_compatible(pref, me, relax=False) -> bool:
-    if relax or has_no_pref(pref) or pd.isna(me):
+    if relax or has_no_pref(pref):
         return True
+    if pd.isna(me):
+        return False
     return bool(norm_set(pref) & norm_set(me)) or ("any" in norm_set(pref))
 
 
 def pets_compatible(a, b, relax=False) -> bool:
     if relax or has_no_pref(a) or has_no_pref(b) or (pd.isna(a) and pd.isna(b)):
         return True
-    aset, bset = norm_set(a), norm_set(b)
-    bad_words = {"severe allergies", "anaphylaxis", "cannot have pets", "no pets at home"}
+    aset = {value.rstrip(".") for value in norm_set(a)}
+    bset = {value.rstrip(".") for value in norm_set(b)}
+    bad_words = {"avoid pets", "severe allergies", "anaphylaxis", "cannot have pets", "no pets at home", "we do not want pets that could cause allergies"}
     has_pets_words = {"has cat", "has dog", "has pets", "cat", "dog", "pets at home", "pets are welcome"}
     return not ((aset & bad_words and bset & has_pets_words) or (bset & bad_words and aset & has_pets_words))
 
 
 def resolve_mustmatch_column(crit: str) -> Optional[str]:
-    for key, col in MUST_MATCH_MAP.items():
-        if key in crit:
-            return col
-    return None
+    return MUST_MATCH_MAP.get(crit)
 
 
 def _mm_check_one(crit, spec, partner_row) -> bool:
@@ -177,7 +184,7 @@ def _mm_check_one(crit, spec, partner_row) -> bool:
         return False
     col = resolve_mustmatch_column(clean_text(crit).lower())
     if col is None:
-        return True
+        raise ValueError(f"Unknown must-match criterion: {crit!r}")
     return bool(norm_set(spec) & norm_set(partner_row.get(col))) or has_no_pref(spec)
 
 
@@ -231,6 +238,8 @@ def pair_score(s: pd.Series, l: pd.Series, w: Dict[str, float]) -> Tuple[float, 
 
 def classify_side(text: str) -> str:
     t = clean_text(text or "").lower()
+    if t in {"student", "local"}:
+        return t
     if re.search(r"\bi am a\b.*\blocal resident\b", t):
         return "local"
     if re.search(r"\bi am an?\b.*\binternational\b.*\bjyu\b.*\bdegree student\b", t) or re.search(r"\bi am an?\b.*\bdegree student\b", t):
@@ -261,17 +270,7 @@ def build_diagnostics_and_edges(df: pd.DataFrame, weights: Dict[str, float], rel
     locals_ = df[side == "local"].copy()
     unknown = df[side == "unknown"].copy()
     if not unknown.empty:
-        bias_student = unknown[COL_DEGREE].notna() & (unknown[COL_DEGREE].astype(str).str.strip() != "")
-        students = pd.concat([students, unknown[bias_student]])
-        locals_ = pd.concat([locals_, unknown[~bias_student]])
-    if students.empty and not locals_.empty:
-        half = len(locals_) // 2
-        students = locals_.iloc[:half].copy()
-        locals_ = locals_.iloc[half:].copy()
-    elif locals_.empty and not students.empty:
-        half = len(students) // 2
-        locals_ = students.iloc[:half].copy()
-        students = students.iloc[half:].copy()
+        raise ValueError("Unrecognized participant status. Use student or local.")
 
     def ensure_id(series, prefix):
         vals = []
@@ -300,7 +299,7 @@ def build_diagnostics_and_edges(df: pd.DataFrame, weights: Dict[str, float], rel
                 **{f"comp_{k}": v for k, v in comp.items()},
             }
             diag_rows.append(row)
-            if ok and score > 0:
+            if ok:
                 edges.append({"s_id": s[COL_ID], "l_id": l[COL_ID], **row})
     return students, locals_, pd.DataFrame(diag_rows), pd.DataFrame(edges)
 
@@ -321,47 +320,50 @@ def print_stats(students, locals_, diag_df, sol=None):
             print(f"Score min/avg/max: {sol['score'].min():.3f} / {sol['score'].mean():.3f} / {sol['score'].max():.3f}")
 
 
-def solve_lexi(students, locals_, edges_df):
+def solve_lexi(students, locals_, edges_df, time_limit_seconds=60):
     if edges_df.empty:
-        return pd.DataFrame()
+        return edges_df.copy()
     s_ids = students[COL_ID].tolist()
     l_ids = locals_[COL_ID].tolist()
-
-    prob1 = pulp.LpProblem("MaxCardinality", pulp.LpMaximize)
-    X1 = {(r.s_id, r.l_id): pulp.LpVariable(f"x1__{r.s_id}__{r.l_id}", cat="Binary") for r in edges_df.itertuples()}
+    problem = pulp.LpProblem("Matching", pulp.LpMaximize)
+    # Numeric names avoid collisions when participant IDs contain '-' or '_'.
+    choices = {(r.s_id, r.l_id): pulp.LpVariable(f"pair_{i}", cat="Binary")
+               for i, r in enumerate(edges_df.itertuples())}
     for s in s_ids:
-        prob1 += pulp.lpSum(X1[(s, l)] for l in l_ids if (s, l) in X1) <= 1
+        problem += pulp.lpSum(choices[(s, l)] for l in l_ids if (s, l) in choices) <= 1
     for l in l_ids:
-        prob1 += pulp.lpSum(X1[(s, l)] for s in s_ids if (s, l) in X1) <= 1
-    total1 = pulp.lpSum(X1.values())
-    prob1 += total1
-    prob1.solve(pulp.PULP_CBC_CMD(msg=False))
-    best_count = int(round(total1.value() or 0))
+        problem += pulp.lpSum(choices[(s, l)] for s in s_ids if (s, l) in choices) <= 1
+
+    def solve_stage(label):
+        problem.solve(pulp.PULP_CBC_CMD(msg=False, timeLimit=time_limit_seconds, gapRel=0))
+        if problem.status != pulp.LpStatusOptimal or problem.sol_status != pulp.LpSolutionOptimal:
+            raise RuntimeError(
+                f"Solver could not finish '{label}' optimally. "
+                "Increase solver_time_limit_seconds in the settings and try again."
+            )
+
+    count = pulp.lpSum(choices.values())
+    problem.setObjective(count)
+    solve_stage("number of matches")
+    best_count = int(round(pulp.value(count) or 0))
     if best_count == 0:
-        return pd.DataFrame()
-
-    prob2 = pulp.LpProblem("ChebyshevWithinMaxCardinality", pulp.LpMaximize)
-    X2 = {(r.s_id, r.l_id): pulp.LpVariable(f"x2__{r.s_id}__{r.l_id}", cat="Binary") for r in edges_df.itertuples()}
+        return edges_df.iloc[:0].copy()
+    problem += count == best_count
     t = pulp.LpVariable("t_min_score", lowBound=0.0, upBound=1.0)
-    for s in s_ids:
-        prob2 += pulp.lpSum(X2[(s, l)] for l in l_ids if (s, l) in X2) <= 1
-    for l in l_ids:
-        prob2 += pulp.lpSum(X2[(s, l)] for s in s_ids if (s, l) in X2) <= 1
-    total2 = pulp.lpSum(X2.values())
-    prob2 += total2 >= best_count
     score_lookup = {(r.s_id, r.l_id): float(r.score) for r in edges_df.itertuples()}
-    for key, var in X2.items():
-        prob2 += t <= score_lookup[key] + (1 - var)
-    total_score = pulp.lpSum(score_lookup[key] * var for key, var in X2.items())
-    prob2 += 1000.0 * t + 0.001 * total_score
-    prob2.solve(pulp.PULP_CBC_CMD(msg=False))
-
-    chosen = []
-    for key, var in X2.items():
-        if var.value() and var.value() > 0.5:
-            row = edges_df[(edges_df.s_id == key[0]) & (edges_df.l_id == key[1])].iloc[0].to_dict()
-            chosen.append(row)
-    return pd.DataFrame(chosen)
+    for key, var in choices.items():
+        problem += t <= score_lookup[key] + (1 - var)
+    problem.setObjective(pulp.lpSum([t]))
+    solve_stage("lowest selected score")
+    best_min = min(score_lookup[key] for key, var in choices.items() if var.value() > 0.5)
+    # Restrict the final stage to pairs at the optimal minimum (numerical tolerance 1e-7).
+    for key, var in choices.items():
+        if score_lookup[key] < best_min - 1e-7:
+            problem += var == 0
+    problem.setObjective(pulp.lpSum(score_lookup[key] * var for key, var in choices.items()))
+    solve_stage("total score")
+    chosen = {key for key, var in choices.items() if var.value() > 0.5}
+    return edges_df[[key in chosen for key in zip(edges_df.s_id, edges_df.l_id)]].copy()
 
 
 def main():
