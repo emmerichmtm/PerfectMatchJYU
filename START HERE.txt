@@ -1,0 +1,27 @@
+PerfectMatch JYU - local browser app for 64-bit Windows
+
+1. Right-click PerfectMatchJYU-Windows.zip and choose Extract All.
+2. Open the extracted PerfectMatch folder.
+3. Double-click PerfectMatch.exe. Your browser opens automatically.
+4. Click Try the included example, then Find matches.
+5. Read the report, then download result.csv and report.txt.
+
+For your own data, edit copies of the two CSVs in the templates folder.
+Save as CSV UTF-8. Choose the files on the browser page and Find matches.
+Keep the two input files with the two downloaded outputs in a dated folder.
+
+No Python installation or internet connection is needed for matching.
+The localhost address refers to your own computer. Files stay local.
+Keep the _internal folder beside PerfectMatch.exe; do not move the EXE alone.
+
+Click Close app before closing the browser tab to stop the local process.
+Save your downloads first. Refreshing the page clears the displayed results.
+If port 8765 is occupied, the app opens another available local address.
+If Windows or your organisation blocks this unsigned app, ask IT to review it.
+
+See manual.pdf for the illustrated-by-examples staff instructions, settings,
+CSV columns, interpretation and troubleshooting. The same manual is linked
+at the top of the browser page.
+
+Source code and updates:
+https://github.com/emmerichmtm/PerfectMatchJYU

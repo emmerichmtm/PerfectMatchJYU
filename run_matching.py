@@ -237,7 +237,7 @@ def make_report(config_path, problem_path, config, students, locals_, diagnostic
     return "\n".join(lines) + "\n"
 
 
-def run(config_path: Path, problem_path: Path, result_path: Path, report_path: Path):
+def run(config_path: Path, problem_path: Path, result_path: Path, report_path: Path, *, quiet=False):
     paths = [p.resolve() for p in (config_path, problem_path, result_path, report_path)]
     if len(set(paths)) != 4:
         raise ValueError("The two inputs and two outputs must use four different file paths.")
@@ -256,9 +256,15 @@ def run(config_path: Path, problem_path: Path, result_path: Path, report_path: P
         path.parent.mkdir(parents=True, exist_ok=True)
     result.to_csv(result_path, index=False, encoding="utf-8-sig", float_format="%.6f")
     report_path.write_text(report, encoding="utf-8")
-    print(f"SUCCESS: {len(result)} matches; {len(students) - len(result)} unmatched students; "
-          f"{len(locals_) - len(result)} unmatched locals.")
-    print(f"Results: {result_path.resolve()}\nReport:  {report_path.resolve()}")
+    result.attrs["summary"] = {
+        "students": len(students), "locals": len(locals_), "matches": len(result),
+        "unmatched_students": len(students) - len(result),
+        "unmatched_locals": len(locals_) - len(result), "eligible_pairs": len(edges),
+    }
+    if not quiet:
+        print(f"SUCCESS: {len(result)} matches; {len(students) - len(result)} unmatched students; "
+              f"{len(locals_) - len(result)} unmatched locals.")
+        print(f"Results: {result_path.resolve()}\nReport:  {report_path.resolve()}")
     return result
 
 

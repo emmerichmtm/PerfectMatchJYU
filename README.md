@@ -6,14 +6,18 @@ Suggest one-to-one matches between students and local participants using **two C
 
 Start with the [A4 staff manual (PDF)](manual.pdf). Its [standalone LaTeX source](manual.tex) is included.
 
-1. Download this repository as a ZIP and extract it.
-2. On Windows, double-click `setup_windows.bat` once. Internet access and Python 3.12 are needed for setup; ask IT to install Python if it cannot be found.
-3. Edit `input/config.csv` and `input/problem.csv` in Excel. Setup creates these from fictional examples and preserves existing input files.
-4. Save as **CSV UTF-8** and close the files.
-5. Double-click `run_matching.bat` and wait for **SUCCESS**.
-6. Read `output/report.txt`, then review the pairs in `output/result.csv`.
+1. Get **PerfectMatchJYU-Windows.zip** from [Releases](https://github.com/emmerichmtm/PerfectMatchJYU/releases), or from your IT colleague, and choose **Extract All**.
+2. Open the extracted `PerfectMatch` folder and double-click **PerfectMatch.exe**. Keep the `_internal` folder beside it. **Python and the solver are included; no installation is needed.**
+3. Your browser opens at **http://localhost:8765** (or another available local port). Click **Try the included example**, then **Find matches**.
+4. For real data, download the two templates, edit them in Excel, and save as **CSV UTF-8**. Replace the fictional participants with your programme's records.
+5. Choose the settings CSV and participant CSV on the page, then click **Find matches**.
+6. Review the pairs and report, then click **Download result.csv** and **Download report.txt**. Use **Close app** when finished.
 
-No Python editing or command-line use is needed for routine Windows runs after setup. Runs are local. Each successful run overwrites the previous two outputs; copy the inputs and outputs to a dated folder to preserve a scenario. A failed run can leave earlier outputs in place: check SUCCESS and the report timestamp.
+The ready-to-run package targets **64-bit Windows**. GitHub's **Code / Download ZIP** is the source code, not this package. The executable is unsigned; if your organisation blocks it, ask IT to review it.
+
+“Localhost” means your own computer. No account, Caddy server or internet connection is needed for matching. The app binds only to the loopback interface; participant data is processed in a temporary local folder and removed after the run. It is not uploaded to GitHub or any external service. The browser accepts up to 4 MB per CSV. Downloads usually go to your browser's Downloads folder. Save both outputs before reloading or closing the page, and keep both input files with them in a dated folder. Closing the tab alone does not stop the app: use **Close app**.
+
+If you already have the source installation, double-click **start_browser.bat**. First-time source users run `setup_windows.bat` once with Python 3.12 and internet access. Opening `browser.html` directly is not sufficient: the local app must be running to calculate matches.
 
 ## CSV inputs
 
@@ -86,6 +90,32 @@ python -m venv .venv
 ```
 
 Without arguments, `run_matching.py` uses `input/config.csv`, `input/problem.csv`, `output/result.csv`, and `output/report.txt`, relative to the current working directory. The Windows launcher selects the project directory automatically. The two inputs and two outputs must be distinct paths.
+
+The existing `run_matching.bat` still supports that workflow. It overwrites the two outputs on success; a failure may leave earlier files in place. Check SUCCESS and the report timestamp.
+
+### Local browser from source
+
+After installing the dependencies:
+
+```bash
+.venv\Scripts\python browser_app.py
+# macOS/Linux: .venv/bin/python browser_app.py
+```
+
+The page opens automatically. Use `--no-browser` to suppress opening it, or `--port 9000` to select a port. Port 8765 is the default, with an available-port fallback if occupied. The server accepts only loopback Host values and requires an Origin check and a random session token for matching and shutdown. It serves only its page, manual and templates. No extra web-framework dependency is required.
+
+The CLI and browser call the same CSV validation and matching functions. Browser submissions are decoded as UTF-8 and re-encoded for the solver; report hashes describe those processed files and can differ from the original file's byte hash when a BOM is removed. Results in the page are cleared when an input changes or a run fails.
+
+### Build the ready-to-run Windows ZIP
+
+On 64-bit Windows with the source environment installed:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install pyinstaller==6.22.3
+.\build_windows.ps1
+```
+
+This creates `dist/PerfectMatchJYU-Windows.zip`. The package includes the Python runtime, required libraries, CBC executable, templates, manual and dependency notices. `PerfectMatch.spec` controls the build; `build_windows.ps1` prepares the ZIP. Build on Windows, not by cross-compiling. The ready-to-run executable is unsigned.
 
 Tests:
 

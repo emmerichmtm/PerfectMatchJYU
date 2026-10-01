@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PerfectMatch JYU</title>
+  <style nonce="__SESSION_TOKEN__">
+    :root { color-scheme: light; --ink:#173c45; --muted:#586d72; --green:#156b58; --line:#d9e4df; --cream:#f5f7f2; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--cream); color:var(--ink); font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    button,input { font:inherit; } button,a,input { -webkit-tap-highlight-color:transparent; }
+    a { color:var(--green); text-underline-offset:4px; } button { cursor:pointer; }
+    button:disabled { opacity:.48; cursor:default; }
+    :focus-visible { outline:3px solid #c37726; outline-offset:4px; }
+    [hidden] { display:none !important; }
+    header { background:white; border-bottom:1px solid var(--line); }
+    .bar { max-width:1080px; margin:auto; padding:20px 32px; display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+    .brand { font-weight:750; font-size:19px; letter-spacing:-.5px; margin-right:auto; }
+    .brand span { color:var(--green); }
+    .badge { font-size:12px; font-weight:650; background:#eaf3ec; padding:4px 10px; border-radius:20px; }
+    .text-button { border:0; padding:0; color:var(--muted); background:none; text-decoration:underline; text-underline-offset:4px; font-size:14px; }
+    header a { font-size:14px; }
+    main { max-width:1080px; margin:auto; padding:48px 32px; }
+    .eyebrow { color:var(--green); font-size:12px; font-weight:750; letter-spacing:1.6px; text-transform:uppercase; margin:0 0 12px; }
+    h1 { font-size:clamp(30px,4vw,43px); line-height:1.15; letter-spacing:-1.4px; max-width:650px; margin:0 0 18px; font-weight:650; }
+    .intro { color:var(--muted); max-width:650px; margin:0; }
+    .section-line { display:flex; align-items:center; justify-content:space-between; gap:18px; margin:36px 0 14px; flex-wrap:wrap; }
+    h2 { font-size:20px; margin:0; letter-spacing:-.4px; }
+    .secondary { border:1px solid var(--line); background:white; color:var(--ink); border-radius:7px; padding:9px 15px; font-size:14px; font-weight:600; }
+    .cards { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .card { border:1px solid var(--line); background:white; padding:26px; border-radius:12px; }
+    .step { display:inline-flex; align-items:center; justify-content:center; color:var(--green); width:29px; height:29px; background:#eaf3ec; border-radius:50%; font-weight:700; font-size:13px; margin-right:9px; }
+    h3 { font-size:17px; margin:0 0 9px; }
+    .card p { color:var(--muted); font-size:14px; margin:0 0 20px; }
+    input[type=file] { width:100%; display:block; color:var(--muted); font-size:13px; }
+    input::file-selector-button { font:600 14px system-ui; background:#f4f7f4; border:1px solid #bccfc6; color:var(--ink); padding:10px 14px; margin-right:12px; border-radius:6px; cursor:pointer; }
+    .filename { display:block; color:var(--green); min-height:24px; margin:12px 0 15px; font-size:13px; overflow-wrap:anywhere; }
+    .template { font-size:13px; }
+    .run-row { display:flex; align-items:center; gap:20px; flex-wrap:wrap; margin-top:22px; }
+    .primary { background:var(--green); color:white; border:1px solid var(--green); font-weight:650; padding:13px 24px; border-radius:7px; }
+    .privacy { font-size:13px; color:var(--muted); max-width:470px; margin:0; }
+    #status { margin:18px 0 0; color:var(--muted); min-height:26px; }
+    #status.error { color:#9a302c; background:#fff0ed; border:1px solid #efcec8; padding:14px 18px; border-radius:8px; }
+    #status.success { color:var(--green); }
+    #results { border-top:1px solid var(--line); margin-top:32px; padding-top:28px; }
+    .result-title { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; }
+    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:20px 0; }
+    .stat { border:1px solid var(--line); border-radius:10px; background:white; padding:17px 22px; }
+    .stat strong { display:block; font-size:32px; font-weight:650; line-height:1.3; }
+    .stat span { color:var(--muted); font-size:13px; }
+    .downloads { display:flex; gap:12px; flex-wrap:wrap; margin:20px 0; }
+    .table-wrap { max-height:420px; overflow:auto; border:1px solid var(--line); border-radius:10px; background:white; }
+    table { border-collapse:collapse; width:100%; text-align:left; font-size:14px; }
+    th,td { padding:13px 20px; border-bottom:1px solid #edf0ec; } th { position:sticky; top:0; background:#edf3ef; font-size:12px; font-weight:650; }
+    th:last-child,td:last-child { text-align:right; } td { overflow-wrap:anywhere; }
+    tbody tr:last-child td { border-bottom:0; }
+    .hint { color:var(--muted); font-size:13px; }
+    details { margin-top:22px; } summary { cursor:pointer; font-weight:600; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; background:white; padding:22px; border:1px solid var(--line); border-radius:8px; font:13px/1.7 ui-monospace,Consolas,monospace; }
+    footer { border-top:1px solid var(--line); margin-top:38px; padding-top:18px; font-size:12px; color:var(--muted); }
+    @media(max-width:660px) { main { padding:30px 20px; } .bar { padding:16px 20px; gap:14px; } .cards { grid-template-columns:1fr; } .card { padding:22px; } .stats { gap:8px; } .stat { padding:12px; } .stat span { font-size:12px; } h1 { letter-spacing:-.8px; } }
+  </style>
+</head>
+<body>
+<header><div class="bar"><div class="brand">PerfectMatch <span>JYU</span></div><span class="badge">On your computer</span><a href="/manual.pdf" target="_blank" rel="noopener">Staff manual ↗</a><button id="stop" class="text-button">Close app</button></div></header>
+<main>
+  <p class="eyebrow">Friendship programme · Matching workspace</p>
+  <h1>Match students with<br>local friends.</h1>
+  <p class="intro">Choose your settings and participant list. Review the suggested pairs, then save the results for your programme.</p>
+  <div class="section-line"><h2>Start with two CSV files</h2><button id="example" class="secondary">Try the included example</button></div>
+  <div class="cards">
+    <section class="card" aria-labelledby="settings-title">
+      <h3 id="settings-title"><span class="step">1</span>Weights &amp; settings</h3>
+      <p>How much each topic matters, plus the rules for matching.</p>
+      <input id="config" type="file" accept=".csv,text/csv" aria-label="Choose weights and settings CSV">
+      <span id="config-name" class="filename">No settings file selected</span>
+      <a class="template" href="/templates/config.csv" download="config.csv">Download settings template ↓</a>
+    </section>
+    <section class="card" aria-labelledby="participants-title">
+      <h3 id="participants-title"><span class="step">2</span>Participants</h3>
+      <p>One row per person, with students and locals in the same file.</p>
+      <input id="problem" type="file" accept=".csv,text/csv" aria-label="Choose participants CSV">
+      <span id="problem-name" class="filename">No participant file selected</span>
+      <a class="template" href="/templates/problem.csv" download="problem.csv">Download participant template ↓</a>
+    </section>
+  </div>
+  <div class="run-row"><button id="run" class="primary" disabled>Find matches →</button><p class="privacy">Your files stay on this computer. No account or internet connection is needed for matching.</p></div>
+  <p id="status" role="status" aria-live="polite">New here? Try the fictional example first.</p>
+  <section id="results" aria-labelledby="results-title" hidden>
+    <div class="result-title"><h2 id="results-title">Your suggested matches</h2><span class="badge">Run complete</span></div>
+    <div class="stats"><div class="stat"><strong id="matches">0</strong><span>Suggested pairs</span></div><div class="stat"><strong id="students">0</strong><span>Unmatched students</span></div><div class="stat"><strong id="locals">0</strong><span>Unmatched locals</span></div></div>
+    <p class="hint">Review the report and check participants’ practical needs before confirming pairs. Scores describe similarity; they are not a prediction of friendship.</p>
+    <div class="downloads"><button id="download-result" class="primary">Download result.csv ↓</button><button id="download-report" class="secondary">Download report.txt ↓</button></div>
+    <div class="table-wrap"><table><thead><tr><th scope="col">Student ID</th><th scope="col">Local ID</th><th scope="col">Score</th></tr></thead><tbody id="pairs"></tbody></table></div>
+    <p id="no-matches" class="hint" hidden>No pairs met the current rules. The report explains who remains unmatched.</p>
+    <details><summary>Read the brief report</summary><pre id="report"></pre></details>
+  </section>
+  <footer>Save both downloads before closing the app. Your browser usually places them in Downloads. Keep the two input files with the outputs as your record of the run.</footer>
+</main>
+<script nonce="__SESSION_TOKEN__">
+  'use strict';
+  const token = '__SESSION_TOKEN__';
+  const byId = id => document.getElementById(id);
+  const files = {config:null, problem:null};
+  const versions = {config:0, problem:0};
+  let busy = false, stopped = false, latest = null;
+  function status(message, kind='') { byId('status').textContent = message; byId('status').className = kind; }
+  function controls() {
+    byId('run').disabled = busy || stopped || !files.config || !files.problem;
+    for (const id of ['config','problem','example','stop']) byId(id).disabled = busy || stopped;
+    byId('run').textContent = busy ? 'Finding matches…' : 'Find matches →';
+  }
+  function clearResults() { latest = null; byId('results').hidden = true; byId('pairs').replaceChildren(); byId('report').textContent = ''; }
+  async function responseJSON(response) {
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'The run could not finish. Try again.');
+    return data;
+  }
+  async function post(path, data) {
+    return responseJSON(await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-Session-Token':token}, body:JSON.stringify(data)}));
+  }
+  for (const kind of ['config','problem']) {
+    byId(kind).addEventListener('change', async event => {
+      const version = ++versions[kind];
+      files[kind] = null; clearResults(); controls();
+      const file = event.target.files[0];
+      byId(kind+'-name').textContent = file ? 'Reading '+file.name+'…' : 'No file selected';
+      if (!file) return;
+      try {
+        if (file.size > 4 * 1024 * 1024) throw new Error('Each CSV must be smaller than 4 MB.');
+        const text = new TextDecoder('utf-8', {fatal:true}).decode(await file.arrayBuffer());
+        if (versions[kind] !== version) return;
+        if (!text.trim()) throw new Error(file.name+' is empty. Choose a CSV with its headings and data.');
+        files[kind] = text;
+        byId(kind+'-name').textContent = 'Ready · '+file.name;
+        status(files.config && files.problem ? 'Both files are ready. Find matches when you are ready.' : 'Choose the other CSV to continue.');
+      } catch (error) {
+        if (versions[kind] !== version) return;
+        byId(kind+'-name').textContent = 'Please choose this file again';
+        status(error instanceof TypeError ? 'Save the CSV as CSV UTF-8 in your spreadsheet application, then choose it again.' : error.message, 'error');
+      } finally { controls(); }
+    });
+  }
+  byId('example').addEventListener('click', async () => {
+    busy = true; clearResults(); controls();
+    for (const kind of ['config','problem']) { ++versions[kind]; files[kind] = null; byId(kind).value = ''; byId(kind+'-name').textContent = 'Loading example…'; }
+    try {
+      const data = await responseJSON(await fetch('/api/example'));
+      for (const kind of ['config','problem']) { files[kind] = data[kind]; byId(kind+'-name').textContent = 'Ready · example '+kind+'.csv'; }
+      status('Fictional example loaded: 3 students and 4 locals. Click Find matches.');
+    } catch (error) { status('Cannot reach the app. Start PerfectMatch again and use the newly opened page.', 'error'); }
+    finally { busy = false; controls(); }
+  });
+  byId('run').addEventListener('click', async () => {
+    busy = true; clearResults(); controls();
+    status('Finding the best set of pairs. Larger lists may take a few minutes; keep this page open.');
+    try {
+      latest = await post('/api/run', files);
+      byId('matches').textContent = latest.summary.matches;
+      byId('students').textContent = latest.summary.unmatched_students;
+      byId('locals').textContent = latest.summary.unmatched_locals;
+      const rows = document.createDocumentFragment();
+      for (const pair of latest.pairs) {
+        const row = document.createElement('tr');
+        for (const value of [pair.student_id, pair.local_id, Number(pair.score).toFixed(3)]) { const cell = document.createElement('td'); cell.textContent = value; row.append(cell); }
+        rows.append(row);
+      }
+      byId('pairs').append(rows); byId('report').textContent = latest.report;
+      byId('no-matches').hidden = latest.pairs.length !== 0;
+      byId('results').hidden = false;
+      status('Matching complete. Review the suggestions below and download both files.', 'success');
+    } catch (error) {
+      clearResults();
+      status(error instanceof TypeError ? 'Cannot reach the app. Start PerfectMatch again and choose the files again.' : error.message, 'error');
+    } finally { busy = false; controls(); }
+  });
+  function download(name, text, type) {
+    const url = URL.createObjectURL(new Blob([text], {type}));
+    const link = document.createElement('a'); link.href = url; link.download = name; document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+  byId('download-result').addEventListener('click', () => { if (latest) download('result.csv', '\ufeff'+latest.csv, 'text/csv;charset=utf-8'); });
+  byId('download-report').addEventListener('click', () => { if (latest) download('report.txt', latest.report, 'text/plain;charset=utf-8'); });
+  byId('stop').addEventListener('click', async () => {
+    if (latest && !window.confirm('Have you saved result.csv and report.txt? Close the local app now?')) return;
+    try { await post('/api/stop', {}); stopped = true; controls(); status('The local app is closed. You can close this tab. Double-click PerfectMatch to start again.'); }
+    catch (error) { status(error instanceof TypeError ? 'The app is no longer responding. You can close this tab and start PerfectMatch again.' : error.message, 'error'); }
+  });
+  if (location.protocol === 'file:') { stopped = true; controls(); status('Start PerfectMatch.exe (or start_browser.bat) first. It opens this page at a localhost address automatically.', 'error'); }
+</script>
+</body>
+</html>

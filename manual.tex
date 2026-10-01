@@ -11,7 +11,7 @@
 \pagestyle{fancy}\fancyhf{}
 \fancyhead[L]{\small\sffamily\color{jyu}PerfectMatch JYU}
 \fancyhead[R]{\small\sffamily Staff manual}
-\fancyfoot[L]{\small CSV interface \textbullet\ October 2026}
+\fancyfoot[L]{\small Local browser interface \textbullet\ October 2026}
 \fancyfoot[R]{\small\thepage}
 \setlength{\parindent}{0pt}\setlength{\parskip}{5pt}\setlength{\emergencystretch}{1em}
 \setlength{\tabcolsep}{5pt}\renewcommand{\arraystretch}{1.18}
@@ -33,36 +33,36 @@
 \makeatletter\renewcommand{\section}{\@startsection{section}{1}{0pt}{1.5ex plus .3ex}{.8ex}{\large\bfseries}}\makeatother
 \begin{document}
 \heading{1. Start here}{Match students and local participants using two spreadsheets}
-This tool suggests one-to-one matches for the programme. You edit two CSV files in Excel or another spreadsheet application, run the supplied launcher, and review two output files. You do not need to write Python or understand mathematical optimisation.
+This tool suggests one-to-one matches for the programme. You edit two CSV files in Excel or another spreadsheet application, choose them in a local browser page, and download two output files. No Python installation, account or mathematical optimisation knowledge is needed with the Windows package.
 
 \par\noindent\begin{tabularx}{\linewidth}{@{}p{25mm}p{48mm}Y@{}}
 \toprule
 \textbf{Purpose} & \textbf{File} & \textbf{What it contains}\\\midrule
-Input & \file{input/config.csv} & Weights and matching settings.\\
-Input & \file{input/problem.csv} & One row for each student or local participant.\\
-Output & \file{output/result.csv} & One row for each suggested pair.\\
-Output & \file{output/report.txt} & A brief explanation, counts and unmatched IDs.\\\bottomrule
+Input & \file{config.csv} & Weights and matching settings.\\
+Input & \file{problem.csv} & One row for each student or local participant.\\
+Output & \file{result.csv} & One row for each suggested pair.\\
+Output & \file{report.txt} & A brief explanation, counts and unmatched IDs.\\\bottomrule
 \end{tabularx}
 
 \section*{First time on a Windows computer}
 \begin{enumerate}
-\item Download the project from \href{https://github.com/emmerichmtm/PerfectMatchJYU}{the project's GitHub page}: choose \textbf{Code}, then \textbf{Download ZIP}. Right-click the ZIP and choose \textbf{Extract All}. Work in the extracted folder.
-\item Double-click \file{setup_windows.bat}. It prepares a private working environment, downloads the required software packages, and copies the sample CSV files into the \file{input} folder. Internet access is needed for setup.
-\item If setup says Python is missing, ask your IT colleague to complete page 6. Routine use afterwards needs no commands or Python editing.
-\item Wait for \textbf{Setup complete}. Setup keeps any existing input files, so running it again does not replace your participant list.
+\item Download \file{PerfectMatchJYU-Windows.zip} from the project's \href{https://github.com/emmerichmtm/PerfectMatchJYU/releases}{GitHub Releases page}, or obtain it from your IT colleague. This is the ready-to-run package; GitHub's \textbf{Code / Download ZIP} contains source code instead.
+\item Right-click the ZIP and choose \textbf{Extract All}. Keep the entire extracted folder together, including \file{_internal}.
+\item In the extracted \file{PerfectMatch} folder, double-click \file{PerfectMatch.exe}. Your usual browser opens automatically. Python and the matching solver are already included.
+\item The address normally starts with \file{http://localhost:8765}. ``Localhost'' means your own computer. Internet access is not needed for matching; CSV data stays on your computer.
 \end{enumerate}
 
 \section*{Try the included example}
-Leave the sample inputs unchanged and double-click \file{run_matching.bat}. Wait until the window says \textbf{SUCCESS}. Open \file{output/report.txt} first, then \file{output/result.csv}.
+Click \textbf{Try the included example}, then \textbf{Find matches}. When the page says \textbf{Matching complete}, read the brief report below the table. Click \textbf{Download result.csv} and \textbf{Download report.txt}. Your browser usually saves them in Downloads.
 \begin{center}\begin{tabular}{lll}
 \toprule\textbf{Student} & \textbf{Local} & \textbf{Score, rounded}\\\midrule
 S01 & L01 & 0.724\\ S02 & L02 & 0.662\\ S03 & L03 & 0.794\\\bottomrule
 \end{tabular}\end{center}
 All three students are matched. Local participant L04 remains unmatched. These are fictional example records. The unchanged template has 12 possible pairs and 8 eligible pairs.
-\note{\textbf{For each real run:} edit the two inputs, save and close them, double-click the launcher, check for SUCCESS, then review both outputs. Each successful run replaces the previous outputs. Copy a run's inputs and outputs to a dated folder if you want to keep it.}
+\note{\textbf{For each real run:} download the two templates, replace the fictional participants, save as CSV UTF-8, choose both files on the page, and click Find matches. Review and save both downloads. Keep the two inputs and two outputs in a dated folder. Use \textbf{Close app} when finished.}
 
 \newpage
-\heading{2. Prepare the participant list}{Edit \file{input/problem.csv}}
+\heading{2. Prepare the participant list}{Edit \file{problem.csv}}
 Keep the heading row unchanged. Delete the fictional participant rows before entering real data. Each person gets one row; students and locals are in the same file. There is no need to sort the rows.
 
 \textbf{IDs:} use unique codes such as S001 and L001. Start with a letter or number; use only letters A--Z, numbers, underscores, hyphens or dots. The same code cannot be used for two people. Use \textbf{Text} format in Excel if codes contain leading zeroes. Keep names and contact details in your normal programme records, linked by ID.
@@ -126,7 +126,7 @@ For pets, \file{none} means no pets at home and no pet restriction recorded; \fi
 Age and preferred age ranges affect the score. They do \textbf{not} exclude a pair. A required age limit cannot be expressed as a must-match criterion in this version.
 
 \newpage
-\heading{4. Choose weights and settings}{Edit only the value column in \file{input/config.csv}}
+\heading{4. Choose weights and settings}{Edit only the value column in \file{config.csv}}
 Keep the \file{setting}, \file{value} and \file{description} headings and all setting rows. Higher weights give that topic more influence on the score. Zero removes its influence on scoring; it does not turn off a required criterion.
 
 \small
@@ -162,10 +162,10 @@ The time limit applies separately to three solving stages. A 60-second setting c
 \newpage
 \heading{5. Review the results}{Open the report before confirming any pair}
 \begin{enumerate}
-\item Check that the launcher says \textbf{SUCCESS} and the report's run time is the run you just made. The time is in UTC and may differ from your local clock.
+\item Check that the page says \textbf{Matching complete} and the report's run time is the run you just made. The time is in UTC and may differ from your local clock.
 \item Check counts of students, locals, eligible pairs and selected matches. Unexpected counts can indicate an input or setting mistake.
 \item Read the unmatched list and any review notes, including disabled checks or unknown pet information.
-\item Open \file{output/result.csv} and review the suggested pairs against programme records. Discuss exceptions and practical needs before confirming matches.
+\item Download \file{result.csv} and review the suggested pairs against programme records. Discuss exceptions and practical needs before confirming matches.
 \item Keep copies of both inputs and both outputs for a record of the decision.
 \end{enumerate}
 
@@ -183,24 +183,26 @@ The report distinguishes people with no eligible partner from people whose eligi
 Missing or renamed headings & Restore the heading row from the matching example CSV. Keep every column, even if its cells are blank.\\
 Duplicate ID or invalid value & Correct the indicated row. Use student/local, valid numbers and the listed criterion names.\\
 Encoding or CSV error & Save again as CSV UTF-8 from the spreadsheet application.\\
-Permission denied & Close the output CSV in Excel. Check that the folder is writable. Run again.\\
+Page cannot connect & Start \file{PerfectMatch.exe} again and use the newly opened page. Closing a tab alone does not stop the app.\\
 No matches or too few & Check side counts, required criteria and wording; review the minimum score and unmatched reasons.\\
 Solver could not finish & Increase the time setting; ask IT if it continues.\\
-ERROR, but old outputs exist & This run failed. Do not use old files as new results; correct the error and wait for SUCCESS.\\\bottomrule
+An error appears & Correct the indicated input and choose the updated file again. Earlier downloaded files remain on disk; check the report timestamp.\\\bottomrule
 \end{tabularx}
 \normalsize
 
 \newpage
 \heading{6. Setup and technical reference}{For the colleague who prepares the computer}
-\section*{Windows setup}
-\begin{enumerate}
-\item Install Python 3.12 from \href{https://www.python.org/downloads/}{python.org/downloads}, following your organisation's software policy. Enable \textbf{Add python.exe to PATH}. The tested runtime is Python 3.12.
-\item Extract the project ZIP into a writable folder. Run \file{setup_windows.bat}. It tries the Python 3.12 launcher first, then a \file{python} command at version 3.11 or later.
-\item Setup creates \file{.venv} in this project and installs \file{requirements.txt}. PuLP is pinned to 3.3.0 because the original API calls are incompatible with PuLP 4. The bundled CBC solver requires no separate installation on the tested Windows setup.
-\item Setup copies \file{examples/config.csv} and \file{examples/problem.csv} into \file{input} only if those destination files do not exist. Test the launcher on the sample inputs before handing over the folder.
-\end{enumerate}
+\section*{Recommended: ready-to-run Windows package}
+The package targets 64-bit Windows and includes Python, the libraries and CBC. Extract it into a writable folder; keep \file{PerfectMatch.exe} with its \file{_internal} folder. No Caddy, package installation or administrator rights are needed for normal use. Test with the included example. The executable is unsigned; if organisational policy blocks it, ask IT to review it.
 
-Internet access is needed to install packages. After setup, matching runs locally without uploading participant data. For network, certificate or installation-policy errors, use your organisation's approved installation method; do not disable certificate checks. Re-run setup after updating the project to apply its dependency requirements. Keep input backups when replacing a project folder.
+The application listens only on this computer's loopback address, normally port 8765. If that port is busy, it chooses another and opens the correct page. Each CSV may be up to 4 MB in the browser. Inputs and solver files are temporary; results stay in the page until refreshed. Save the outputs before closing or reloading. Use \textbf{Close app} to stop the background process. Several open instances are independent.
+
+\section*{Alternative: run from source}
+\begin{enumerate}
+\item Install Python 3.12 from \href{https://www.python.org/downloads/}{python.org}, following IT policy. Enable \textbf{Add python.exe to PATH}. Extract the source ZIP into a writable folder.
+\item Run \file{setup_windows.bat} once, with internet access. It creates \file{.venv}, installs the packages, and preserves existing files in \file{input}. Do not disable certificate checks if setup reports network errors.
+\item Double-click \file{start_browser.bat} to open the local browser interface. Keep its command window open while working. macOS/Linux users can install \file{requirements.txt} in a Python environment and run \file{python browser_app.py}.
+\end{enumerate}
 
 \section*{Command-line use (optional)}
 From the project folder after installation:
@@ -209,14 +211,16 @@ From the project folder after installation:
 \file{  --problem examples/problem.csv --result output/result.csv}\\
 \file{  --report output/report.txt}
 \end{quote}
-The display wraps one command for readability: type it as \textbf{one line}, using the installed environment's Python. On Windows that executable is \file{.venv/Scripts/python.exe}. Without arguments the script uses the four paths on page 1. Relative paths are relative to the current working folder; the Windows launcher selects the project folder automatically.
-
-On macOS or Linux, an IT colleague can create an environment with \file{python3 -m venv .venv}, install with \file{.venv/bin/python -m pip install -r requirements.txt}, copy the example files into an \file{input} folder, and run \file{.venv/bin/python run_matching.py}. These are portability instructions; the included double-click launcher targets Windows.
+Type this as \textbf{one line}, using the installed environment's Python. On Windows:\par
+{\small\file{.venv/Scripts/python.exe}}\par
+The older \file{run_matching.bat} reads the two CSVs from \file{input} and writes results into \file{output}. It overwrites earlier outputs on success; a failed run may leave older files.
 
 \section*{Verification and maintenance}
-The templates are synthetic. Working \file{input/}, generated \file{output/} and \file{.venv/} folders are excluded from Git. Do not add real participant files to the repository. The report includes SHA-256 identifiers of its inputs so a technical colleague can check which versions produced a run.
+The templates are synthetic. Do not add real participant files to Git. The report records SHA-256 identifiers of the processed input files; the browser normalises UTF-8 encoding when passing them to the solver. Keep the original inputs too.
 
-Run checks with \file{python -m unittest discover -s tests -v}. They cover the example, validation, empty results, preference switches and the matching priorities. The lowest-score priority uses a numerical tolerance of $10^{-7}$.
+Run checks with:\par
+{\small\file{python -m unittest discover -s tests -v}}\par
+Checks cover CSV validation, matching priorities and the local HTTP interface. To build the Windows package, see \file{build_windows.ps1} and the README. PuLP 3.3.0 supplies CBC. The lowest-score priority uses a tolerance of $10^{-7}$.
 
-This is a self-contained A4 LaTeX document, \file{manual.tex}, with no external images or included source files. Compile with \file{pdflatex manual.tex} twice, or \file{tectonic manual.tex}. The repository includes \file{manual.pdf}. The original \file{match_solver.py --input ...} interface remains available; the shorter CSV headings here belong to \file{run_matching.py}.
+This self-contained A4 source, \file{manual.tex}, uses no external images. Compile with \file{pdflatex manual.tex} twice or \file{tectonic manual.tex}. The repository also includes \file{manual.pdf}.
 \end{document}
