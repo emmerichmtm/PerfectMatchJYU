@@ -1,0 +1,41 @@
+PERFECTMATCH JYU - MATCHING REPORT
+Status: SUCCESS
+Run time (UTC): 2026-10-01 03:57:05
+Participants file: problem.csv
+Settings file: config.csv
+Input SHA-256: 0acaf534b0301e7acca475a808c6eefdd1db93b357b8613f9f3c82fe335b5404
+Settings SHA-256: 28e30d471a3adffc715ce0cbcf0c0df0b133592bb4cabd7fa6a6966764ef6bfa
+
+SUMMARY
+Students: 3; locals: 4
+Candidate pairs: 12; eligible pairs: 8
+Selected matches: 3
+Unmatched students: 0; unmatched locals: 1
+Score minimum / average / maximum: 0.662 / 0.727 / 0.794
+
+UNMATCHED PARTICIPANTS
+  L04: eligible partners existed; one-to-one allocation left this person unmatched
+
+SETTINGS USED
+Relative weights (normalized): profile 34.0%; hobbies 23.0%; appreciate 10.0%; languages 9.0%; age 9.0%; info 7.0%; degree 5.0%; field 3.0%
+enforce_gender: TRUE
+enforce_pets: TRUE
+enforce_must_match: TRUE
+minimum_score: 0
+solver_time_limit_seconds: 60 per stage
+
+PAIR CHECKS (counts may overlap)
+Failed gender check: 3
+Failed pets check: 1
+Failed must-match check: 1
+Passed mandatory checks but below minimum_score: 0
+
+HOW TO READ THIS RUN
+Each person appears in at most one selected pair.
+The solver first finds the most matches, then improves the lowest selected
+score, then the total score (minimum-score numerical tolerance: 0.0000001).
+A score is a weighted similarity from 0 to 1, not a probability or guarantee.
+Text items are compared by exact wording, ignoring case; prose is not interpreted.
+If two must-match criteria are supplied, at least ONE must pass for that person.
+Unknown pets do not block a pair. Age preferences affect scores, not eligibility.
+Programme staff should review the suggestions before confirming any match.
