@@ -12,7 +12,7 @@ try {
     $package = Join-Path $Destination 'PerfectMatch'
     Copy-Item -LiteralPath 'START HERE.txt', 'manual.pdf' -Destination $package
     New-Item -ItemType Directory -Force -Path (Join-Path $package 'templates') | Out-Null
-    Copy-Item -LiteralPath 'examples\config.csv', 'examples\problem.csv' -Destination (Join-Path $package 'templates')
+    Copy-Item -LiteralPath 'examples\config.csv', 'examples\problem.csv', 'examples\config_three_solutions.csv' -Destination (Join-Path $package 'templates')
     & $Python package_notices.py $package
     if ($LASTEXITCODE -ne 0) { throw 'Dependency notice collection failed.' }
     # Python zipfile also retains files that PowerShell Compress-Archive may skip.

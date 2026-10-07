@@ -15,6 +15,8 @@ a = Analysis(
            (str(project / "manual.pdf"), "."),
            (str(project / "examples/config.csv"), "examples"),
            (str(project / "examples/problem.csv"), "examples"),
+           (str(project / "examples/config_three_solutions.csv"), "examples"),
+           (str(project / "examples/problem_21x28.csv"), "examples"),
            (str(cbc / "coin-license.txt"), "pulp/solverdir/cbc/win/i64")],
     hiddenimports=[], hookspath=[], hooksconfig={}, runtime_hooks=[],
     excludes=["tkinter", "IPython", "matplotlib"], noarchive=False,

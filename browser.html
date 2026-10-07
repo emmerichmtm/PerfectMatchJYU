@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PerfectMatch JYU</title>
   <style nonce="__SESSION_TOKEN__">
-    :root { color-scheme: light; --ink:#173c45; --muted:#586d72; --green:#156b58; --line:#d9e4df; --cream:#f5f7f2; }
+    :root { color-scheme: light; --ink:#173c45; --muted:#586d72; --green:#156b58; --line:#d9e4df; --cream:#f5f7f2;
+            --s0:#2a78d6; --s1:#eb6834; --s2:#1baf7a; --grid:#e6ece9; --baseline:#c3cbc7; }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--cream); color:var(--ink); font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
     button,input { font:inherit; } button,a,input { -webkit-tap-highlight-color:transparent; }
@@ -35,7 +36,8 @@
     input[type=file] { width:100%; display:block; color:var(--muted); font-size:13px; }
     input::file-selector-button { font:600 14px system-ui; background:#f4f7f4; border:1px solid #bccfc6; color:var(--ink); padding:10px 14px; margin-right:12px; border-radius:6px; cursor:pointer; }
     .filename { display:block; color:var(--green); min-height:24px; margin:12px 0 15px; font-size:13px; overflow-wrap:anywhere; }
-    .template { font-size:13px; }
+    .template { display:block; font-size:13px; }
+    .examples { display:flex; gap:10px; flex-wrap:wrap; }
     .run-row { display:flex; align-items:center; gap:20px; flex-wrap:wrap; margin-top:22px; }
     .primary { background:var(--green); color:white; border:1px solid var(--green); font-weight:650; padding:13px 24px; border-radius:7px; }
     .privacy { font-size:13px; color:var(--muted); max-width:470px; margin:0; }
@@ -60,6 +62,37 @@
     details { margin-top:22px; } summary { cursor:pointer; font-weight:600; }
     pre { white-space:pre-wrap; overflow-wrap:anywhere; background:white; padding:22px; border:1px solid var(--line); border-radius:8px; font:13px/1.7 ui-monospace,Consolas,monospace; }
     footer { border-top:1px solid var(--line); margin-top:38px; padding-top:18px; font-size:12px; color:var(--muted); }
+    .tabs { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+    .tab { display:flex; align-items:center; gap:10px; border:1px solid var(--line); background:white; color:var(--ink); border-radius:8px; padding:8px 14px; text-align:left; line-height:1.35; }
+    .tab strong { display:block; font-size:14px; font-weight:650; } .tab small { display:block; color:var(--muted); font-size:12px; }
+    .tab[aria-selected=true] { border-color:var(--ink); box-shadow:inset 0 0 0 1px var(--ink); }
+    .key { display:inline-block; width:12px; height:12px; border-radius:3px; flex:none; }
+    .s0 { background:var(--s0); } .s1 { background:var(--s1); } .s2 { background:var(--s2); }
+    .viz-card { position:relative; border:1px solid var(--line); background:white; border-radius:12px; padding:22px 24px 10px; margin:24px 0; }
+    .viz-head { display:flex; justify-content:space-between; gap:12px 24px; flex-wrap:wrap; margin-bottom:8px; }
+    .viz-head h3 { margin:0 0 4px; } .viz-head p { margin:0; max-width:620px; }
+    .legend { display:flex; gap:16px; flex-wrap:wrap; align-items:center; font-size:13px; }
+    .legend span { display:inline-flex; align-items:center; gap:6px; }
+    .viz-row { display:grid; grid-template-columns:150px 1fr 1fr; align-items:center; border-top:1px solid #edf0ec; }
+    .viz-row > * { padding:9px 16px; min-width:0; }
+    .viz-row > :first-child { padding-left:0; font-size:14px; }
+    .viz-row > :last-child { border-left:1px solid var(--line); align-self:stretch; display:flex; flex-direction:column; justify-content:center; }
+    .viz-row.head { border-top:0; font-size:12px; font-weight:650; letter-spacing:.5px; color:var(--muted); }
+    .viz-row:not(.head):hover { background:#f6f9f7; }
+    .axis { position:relative; height:16px; margin:4px 44px 0 0; font-weight:400; letter-spacing:0; font-variant-numeric:tabular-nums; }
+    .axis span { position:absolute; transform:translateX(-50%); } .axis span:first-child { transform:none; }
+    .bars { position:relative; display:grid; gap:2px; margin-right:44px; border-left:1px solid var(--baseline); }
+    .bars::before, .bars::after { content:''; position:absolute; top:-4px; bottom:-4px; width:1px; background:var(--grid); }
+    .bars::before { left:50%; } .bars::after { left:100%; }
+    .bar-line { position:relative; height:11px; } .bars.n1 .bar-line { height:14px; }
+    .bar-fill { position:relative; z-index:1; height:100%; min-width:2px; border-radius:0 4px 4px 0; }
+    .val { position:absolute; z-index:1; top:50%; transform:translateY(-50%); font-size:11px; line-height:1; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .viz-note { font-size:12px; color:var(--muted); }
+    .viz-text { font-size:13px; line-height:1.45; }
+    .viz-text > div, .tooltip > div { display:flex; gap:7px; align-items:baseline; } .viz-text .key, .tooltip .key { position:relative; top:1px; }
+    .tooltip { position:absolute; z-index:5; pointer-events:none; background:var(--ink); color:white; font-size:12px; line-height:1.55; padding:9px 12px; border-radius:7px; box-shadow:0 6px 18px rgba(23,60,69,.18); max-width:340px; }
+    .tooltip > strong { display:block; margin-bottom:2px; }
+    @media(max-width:660px) { .viz-card { padding:18px 16px 8px; } .viz-row { grid-template-columns:1fr 1fr; } .viz-row > :first-child { grid-column:1 / -1; padding:9px 0 0; font-weight:600; } .viz-row.head > :first-child { display:none; } .viz-row > * { padding:6px 10px 9px 0; } .viz-row > :last-child { padding-left:10px; } .bars, .axis { margin-right:34px; } }
     @media(max-width:660px) { main { padding:30px 20px; } .bar { padding:16px 20px; gap:14px; } .cards { grid-template-columns:1fr; } .card { padding:22px; } .stats { gap:8px; } .stat { padding:12px; } .stat span { font-size:12px; } h1 { letter-spacing:-.8px; } }
   </style>
 </head>
@@ -69,14 +102,15 @@
   <p class="eyebrow">Friendship programme · Matching workspace</p>
   <h1>Match students with<br>local friends.</h1>
   <p class="intro">Choose your settings and participant list. Review the suggested pairs, then save the results for your programme.</p>
-  <div class="section-line"><h2>Start with two CSV files</h2><button id="example" class="secondary">Try the included example</button></div>
+  <div class="section-line"><h2>Start with two CSV files</h2><div class="examples"><button id="example" class="secondary">Try the included example</button><button id="example-round" class="secondary">Try 21 × 28 with three weightings</button></div></div>
   <div class="cards">
     <section class="card" aria-labelledby="settings-title">
       <h3 id="settings-title"><span class="step">1</span>Weights &amp; settings</h3>
-      <p>How much each topic matters, plus the rules for matching.</p>
+      <p>Weights from 0 to 1 and the rules for matching. Optional <code>value_</code> columns give up to three solutions.</p>
       <input id="config" type="file" accept=".csv,text/csv" aria-label="Choose weights and settings CSV">
       <span id="config-name" class="filename">No settings file selected</span>
       <a class="template" href="/templates/config.csv" download="config.csv">Download settings template ↓</a>
+      <a class="template" href="/templates/config_three_solutions.csv" download="config_three_solutions.csv">Download three-solution example ↓</a>
     </section>
     <section class="card" aria-labelledby="participants-title">
       <h3 id="participants-title"><span class="step">2</span>Participants</h3>
@@ -90,9 +124,16 @@
   <p id="status" role="status" aria-live="polite">New here? Try the fictional example first.</p>
   <section id="results" aria-labelledby="results-title" hidden>
     <div class="result-title"><h2 id="results-title">Your suggested matches</h2><span class="badge">Run complete</span></div>
+    <div id="tabs" class="tabs" role="tablist" aria-label="Solutions" hidden></div>
     <div class="stats"><div class="stat"><strong id="matches">0</strong><span>Suggested pairs</span></div><div class="stat"><strong id="students">0</strong><span>Unmatched students</span></div><div class="stat"><strong id="locals">0</strong><span>Unmatched locals</span></div></div>
     <p class="hint">Review the report and check participants’ practical needs before confirming pairs. Scores describe similarity; they are not a prediction of friendship.</p>
     <div class="downloads"><button id="download-result" class="primary">Download result.csv ↓</button><button id="download-report" class="secondary">Download report.txt ↓</button></div>
+    <p id="combined" class="hint" hidden>result.csv contains the pairs of every solution; its solution column says which. The table shows the selected solution.</p>
+    <section class="viz-card" aria-labelledby="viz-title">
+      <div class="viz-head"><div><h3 id="viz-title">Weights and achievement</h3><p class="hint">Input on the left: the weights, normalized to sum to 1. Output on the right: the average score each criterion reached in the selected pairs. Both run from 0 to 1.</p></div><div id="legend" class="legend" hidden></div></div>
+      <div id="viz"></div>
+      <div id="tooltip" class="tooltip" hidden></div>
+    </section>
     <div class="table-wrap"><table><thead><tr><th scope="col">Student ID</th><th scope="col">Local ID</th><th scope="col">Score</th></tr></thead><tbody id="pairs"></tbody></table></div>
     <p id="no-matches" class="hint" hidden>No pairs met the current rules. The report explains who remains unmatched.</p>
     <details><summary>Read the brief report</summary><pre id="report"></pre></details>
@@ -106,13 +147,121 @@
   const files = {config:null, problem:null};
   const versions = {config:0, problem:0};
   let busy = false, stopped = false, latest = null;
+  const CRITERIA = [['profile','Profile'], ['hobbies','Hobbies'], ['appreciate','Appreciated qualities'], ['languages','Languages'],
+                    ['age','Age'], ['info','Information'], ['degree','Degree'], ['field','Field of science']];
+  const tips = new WeakMap();
   function status(message, kind='') { byId('status').textContent = message; byId('status').className = kind; }
   function controls() {
     byId('run').disabled = busy || stopped || !files.config || !files.problem;
-    for (const id of ['config','problem','example','stop']) byId(id).disabled = busy || stopped;
+    for (const id of ['config','problem','example','example-round','stop']) byId(id).disabled = busy || stopped;
     byId('run').textContent = busy ? 'Finding matches…' : 'Find matches →';
   }
-  function clearResults() { latest = null; byId('results').hidden = true; byId('pairs').replaceChildren(); byId('report').textContent = ''; }
+  function clearResults() {
+    latest = null; byId('results').hidden = true; byId('tooltip').hidden = true;
+    for (const id of ['pairs','tabs','viz','legend']) byId(id).replaceChildren();
+    byId('report').textContent = '';
+  }
+  function make(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+  const two = value => value === null ? '–' : Number(value).toFixed(2);
+  const three = value => value === null ? '–' : Number(value).toFixed(3);
+  const plural = n => n + (n === 1 ? ' student' : ' students');
+  // One thin bar per solution on a fixed 0-1 scale, value written at the tip.
+  function bars(values) {
+    const group = make('div', 'bars n' + values.length);
+    values.forEach((value, i) => {
+      const line = make('div', 'bar-line'), label = make('span', 'val', two(value));
+      const share = value === null ? 0 : Math.max(0, Math.min(1, value)) * 100;
+      if (value !== null) { const fill = make('div', 'bar-fill s' + i); fill.style.width = share + '%'; line.append(fill); }
+      label.style.left = 'calc(' + share + '% + 5px)';
+      line.append(label); group.append(line);
+    });
+    return group;
+  }
+  function axis(title) {
+    const cell = make('div', '', title), scale = make('div', 'axis');
+    for (const [at, text] of [[0, '0'], [50, '0.5'], [100, '1']]) { const tick = make('span', '', text); tick.style.left = at + '%'; scale.append(tick); }
+    cell.append(scale);
+    return cell;
+  }
+  function keyed(i, text) {
+    const line = make('div'), body = make('span');
+    if (latest.solutions.length > 1) { line.append(make('span', 'key s' + i)); body.append(make('strong', '', latest.solutions[i].name + ' ')); }
+    body.append(text); line.append(body);
+    return line;
+  }
+  function renderViz() {
+    const solutions = latest.solutions, several = solutions.length > 1;
+    byId('legend').replaceChildren(...solutions.map((s, i) => { const item = make('span'); item.append(make('span', 'key s' + i), s.name); return item; }));
+    byId('legend').hidden = !several;
+    const head = make('div', 'viz-row head');
+    head.append(make('div'), axis('INPUT · WEIGHT'), axis('OUTPUT · AVERAGE CRITERION SCORE'));
+    const rows = [head];
+    for (const [key, label] of CRITERIA) {
+      const row = make('div', 'viz-row');
+      row.append(make('div', '', label), bars(solutions.map(s => s.weights[key])), bars(solutions.map(s => s.achieved[key])));
+      tips.set(row, [label, solutions.map(s => 'weight ' + three(s.weights[key]) + ' · achieved ' + three(s.achieved[key]) +
+        (s.achieved[key] === null ? '' : ' · adds ' + three(s.weights[key] * s.achieved[key]) + ' to the overall score'))]);
+      rows.push(row);
+    }
+    const overall = make('div', 'viz-row');
+    overall.append(make('div', '', 'Overall score'), make('div', 'viz-note', 'Weights sum to 1, so the overall score is the weighted average of the criterion scores.'),
+                   bars(solutions.map(s => s.score_mean)));
+    tips.set(overall, ['Overall score', solutions.map(s => 'average pair ' + three(s.score_mean) + ' · lowest pair ' + three(s.score_min))]);
+    const rules = make('div', 'viz-text'), outcome = make('div', 'viz-text');
+    solutions.forEach((s, i) => {
+      const checks = [['enforce_gender', 'gender'], ['enforce_pets', 'pets'], ['enforce_must_match', 'must-match']];
+      const off = checks.filter(([key]) => !s.rules[key]).map(([, name]) => name);
+      rules.append(keyed(i, (off.length ? 'checks off: ' + off.join(', ') : 'all checks on') + ' · minimum score ' + two(s.rules.minimum_score)));
+      outcome.append(keyed(i, s.matches + '/' + s.students + ' students matched · lowest pair ' + two(s.score_min) +
+                              (i ? ' · ' + s.shared_with_main + ' pairs as in ' + solutions[0].name : '')));
+    });
+    const summary = make('div', 'viz-row');
+    summary.append(make('div', '', 'Rules and result'), rules, outcome);
+    byId('viz').replaceChildren(...rows, overall, summary);
+  }
+  function renderTabs() {
+    byId('tabs').hidden = latest.solutions.length < 2;
+    byId('tabs').replaceChildren(...latest.solutions.map((s, i) => {
+      const tab = make('button', 'tab'), text = make('span');
+      tab.type = 'button'; tab.setAttribute('role', 'tab');
+      text.append(make('strong', '', s.name), make('small', '', s.matches + '/' + s.students + ' matched · average ' + two(s.score_mean)));
+      tab.append(make('span', 'key s' + i), text);
+      tab.addEventListener('click', () => showSolution(i));
+      return tab;
+    }));
+  }
+  function showSolution(index) {
+    const s = latest.solutions[index], several = latest.solutions.length > 1;
+    [...byId('tabs').children].forEach((tab, i) => tab.setAttribute('aria-selected', String(i === index)));
+    byId('matches').textContent = s.matches;
+    byId('students').textContent = s.unmatched_students;
+    byId('locals').textContent = s.unmatched_locals;
+    byId('students').parentElement.classList.toggle('warning', s.unmatched_students > 0);
+    const rows = document.createDocumentFragment();
+    for (const pair of latest.pairs.filter(p => !several || p.solution === s.name)) {
+      const row = document.createElement('tr');
+      for (const value of [pair.student_id, pair.local_id, Number(pair.score).toFixed(3)]) { const cell = document.createElement('td'); cell.textContent = value; row.append(cell); }
+      rows.append(row);
+    }
+    byId('pairs').replaceChildren(rows);
+    byId('no-matches').hidden = s.matches !== 0;
+  }
+  byId('viz').addEventListener('mousemove', event => {
+    const row = event.target.closest('.viz-row'), tip = byId('tooltip');
+    if (!row || !tips.has(row)) { tip.hidden = true; return; }
+    const [title, lines] = tips.get(row);
+    tip.replaceChildren(make('strong', '', title), ...lines.map((text, i) => keyed(i, text)));
+    tip.hidden = false;
+    const card = byId('viz').parentElement.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(event.clientX - card.left + 14, card.width - tip.offsetWidth - 8)) + 'px';
+    tip.style.top = (event.clientY - card.top + 16) + 'px';
+  });
+  byId('viz').addEventListener('mouseleave', () => { byId('tooltip').hidden = true; });
   async function responseJSON(response) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'The run could not finish. Try again.');
@@ -143,38 +292,36 @@
       } finally { controls(); }
     });
   }
-  byId('example').addEventListener('click', async () => {
+  async function loadExample(query, names, message) {
     busy = true; clearResults(); controls();
     for (const kind of ['config','problem']) { ++versions[kind]; files[kind] = null; byId(kind).value = ''; byId(kind+'-name').textContent = 'Loading example…'; }
     try {
-      const data = await responseJSON(await fetch('/api/example'));
-      for (const kind of ['config','problem']) { files[kind] = data[kind]; byId(kind+'-name').textContent = 'Ready · example '+kind+'.csv'; }
-      status('Fictional example loaded: 3 students and 4 locals. Click Find matches.');
+      const data = await responseJSON(await fetch('/api/example' + query));
+      ['config','problem'].forEach((kind, i) => { files[kind] = data[kind]; byId(kind+'-name').textContent = 'Ready · example '+names[i]; });
+      status(message);
     } catch (error) { status('Cannot reach the app. Start PerfectMatch again and use the newly opened page.', 'error'); }
     finally { busy = false; controls(); }
-  });
+  }
+  byId('example').addEventListener('click', () => loadExample('', ['config.csv', 'problem.csv'],
+    'Fictional example loaded: 3 students and 4 locals. Click Find matches.'));
+  byId('example-round').addEventListener('click', () => loadExample('?name=round', ['config_three_solutions.csv', 'problem_21x28.csv'],
+    'Fictional round loaded: 21 students, 28 locals and three weightings (main, interests, background). Click Find matches.'));
   byId('run').addEventListener('click', async () => {
     busy = true; clearResults(); controls();
     status('Finding the best set of pairs. Larger lists may take a few minutes; keep this page open.');
     try {
       latest = await post('/api/run', files);
-      byId('matches').textContent = latest.summary.matches;
-      byId('students').textContent = latest.summary.unmatched_students;
-      byId('locals').textContent = latest.summary.unmatched_locals;
-      const rows = document.createDocumentFragment();
-      for (const pair of latest.pairs) {
-        const row = document.createElement('tr');
-        for (const value of [pair.student_id, pair.local_id, Number(pair.score).toFixed(3)]) { const cell = document.createElement('td'); cell.textContent = value; row.append(cell); }
-        rows.append(row);
-      }
-      byId('pairs').append(rows); byId('report').textContent = latest.report;
-      byId('no-matches').hidden = latest.pairs.length !== 0;
+      const several = latest.solutions.length > 1, short = latest.solutions.filter(s => s.unmatched_students > 0);
+      renderTabs(); showSolution(0); renderViz();
+      byId('report').textContent = latest.report;
+      byId('combined').hidden = !several;
       byId('results').hidden = false;
-      const missing = latest.summary.unmatched_students;
-      byId('students').parentElement.classList.toggle('warning', missing > 0);
-      byId('report').parentElement.open = missing > 0;
-      if (missing > 0) status('Matching complete, but ' + missing + (missing === 1 ? ' student' : ' students') + ' could not be matched under these rules. The report below explains why and what to relax.', 'warning');
-      else status('Matching complete.' + (latest.pairs.length ? ' Every student has a suggested partner.' : '') + ' Review the suggestions below and download both files.', 'success');
+      byId('report').parentElement.open = short.length > 0;
+      if (short.length) status('Matching complete, but ' + (several
+          ? short.map(s => 'solution ' + s.name + ' leaves ' + plural(s.unmatched_students) + ' unmatched').join('; ')
+          : plural(short[0].unmatched_students) + ' could not be matched under these rules') + '. The report below explains why and what to relax.', 'warning');
+      else status('Matching complete.' + (latest.pairs.length ? ' Every student has a suggested partner' + (several ? ' in all ' + latest.solutions.length + ' solutions.' : '.') : '') +
+                  ' Review the suggestions below and download both files.', 'success');
     } catch (error) {
       clearResults();
       status(error instanceof TypeError ? 'Cannot reach the app. Start PerfectMatch again and choose the files again.' : error.message, 'error');

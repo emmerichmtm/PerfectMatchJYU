@@ -84,7 +84,7 @@ class CsvInterfaceTests(unittest.TestCase):
         result = self.run_case()
         self.assertEqual(len(result), 3)
         self.assertTrue((result.score == result.hobbies_score).all())
-        self.assertIn("hobbies 100.0%", self.report.read_text())
+        self.assertIn("hobbies 1.000", self.report.read_text())
 
     def test_only_one_side_does_not_invent_partners(self):
         rows = [r for r in self.rows(self.problem) if r["side"] == "student"]
@@ -182,6 +182,51 @@ class CsvInterfaceTests(unittest.TestCase):
         self.assertNotIn("S01", set(self.run_case().student_id))
         self.assertIn("S01: no eligible partner under these settings; of 4 locals, failed checks: gender 4,",
                       self.report.read_text(encoding="utf-8"))
+
+    def test_three_solutions_from_value_columns(self):
+        self.config.write_bytes((ROOT / "examples/config_three_solutions.csv").read_bytes())
+        self.problem.write_bytes((ROOT / "examples/problem_21x28.csv").read_bytes())
+        result = self.run_case()
+        solutions = result.attrs["solutions"]
+        self.assertEqual([s["name"] for s in solutions], ["main", "interests", "background"])
+        self.assertEqual(list(pd.read_csv(self.result).columns), ["solution"] + app.RESULT_COLUMNS)
+        for s in solutions:
+            with self.subTest(solution=s["name"]):
+                self.assertEqual(s["matches"], 21)
+                self.assertEqual(set(result[result.solution == s["name"]].student_id), set(result.student_id))
+                self.assertAlmostEqual(sum(s["weights"].values()), 1)
+                self.assertTrue(all(0 <= v <= 1 for v in s["achieved"].values()))
+                # The overall score is linear in the criteria, so its average is the weighted average.
+                self.assertAlmostEqual(s["score_mean"], sum(s["weights"][k] * s["achieved"][k] for k in s["weights"]))
+        self.assertEqual(solutions[0]["shared_with_main"], 21)
+        self.assertAlmostEqual(solutions[1]["weights"]["hobbies"], 0.35)
+        report = self.report.read_text(encoding="utf-8")
+        self.assertIn("Solutions: main, interests, background", report)
+        self.assertIn("SUMMARY - SOLUTION interests", report)
+        self.assertIn("WEIGHTS (INPUT) AND ACHIEVED SCORES (OUTPUT)", report)
+
+    def test_blank_solution_cells_repeat_value_and_bad_columns_are_rejected(self):
+        rows = [dict(r, value_strict="", value_open="") for r in self.rows(self.config)]
+        next(r for r in rows if r["setting"] == "enforce_gender")["value_open"] = "FALSE"
+        next(r for r in rows if r["setting"] == "weight_age")["value_strict"] = "0,5"
+        self.write(self.config, rows)
+        (_, main), (strict, s), (open_, o) = app.load_configs(self.config)
+        self.assertEqual((strict, open_), ("strict", "open"))
+        self.assertEqual(s["weight_age"], 0.5)
+        self.assertEqual({k: v for k, v in s.items() if k != "weight_age"}, {k: v for k, v in main.items() if k != "weight_age"})
+        self.assertFalse(o["enforce_gender"])
+        self.run_case()
+        self.assertIn("Checks switched OFF in solution open: enforce_gender", self.report.read_text(encoding="utf-8"))
+        for extra in [{"value_b": "", "value_c": "", "value_d": ""}, {"value_main": ""}, {"variant": ""}]:
+            with self.subTest(extra=extra):
+                self.write(self.config, [dict(r, **extra) for r in self.rows(ROOT / "examples/config.csv")])
+                with self.assertRaises(ValueError):
+                    app.load_configs(self.config)
+        rows = [dict(r, value_b="") for r in self.rows(ROOT / "examples/config.csv")]
+        rows[0]["value_b"] = "-1"
+        self.write(self.config, rows)
+        with self.assertRaisesRegex(ValueError, "value_b"):
+            app.load_configs(self.config)
 
     def test_inputs_cannot_be_overwritten(self):
         original = self.problem.read_bytes()

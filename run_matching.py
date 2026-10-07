@@ -45,9 +45,12 @@ SETTINGS = {**{f"weight_{k}": v for k, v in core.DEFAULT_WEIGHTS.items()},
             "solver_time_limit_seconds": 60}
 CRITERIA = {"profile", "hobbies", "gender", "languages", "degree", "field"}
 RESULT_COLUMNS = ["student_id", "local_id", "score"] + [f"{k}_score" for k in core.DEFAULT_WEIGHTS]
+# Extra settings columns such as value_interests define alternative solutions; blank cells repeat value.
+VARIANT_COLUMN = r"value_([A-Za-z0-9][A-Za-z0-9_-]*)"
+MAX_SOLUTIONS = 3
 
 
-def read_csv(path: Path, required: set[str], optional: set[str] | None = None):
+def read_csv(path: Path, required: set[str], optional: set[str] | None = None, pattern: str | None = None):
     """Read UTF-8 Excel CSVs without losing leading zeroes or guessing field types."""
     try:
         text = path.read_text(encoding="utf-8-sig")
@@ -68,7 +71,8 @@ def read_csv(path: Path, required: set[str], optional: set[str] | None = None):
     header = [v.strip() for v in next(reader)]
     if len(header) != len(set(header)):
         raise ValueError(f"{path.name}: duplicate column headings.")
-    unknown = set(header) - required - (optional or set())
+    unknown = {h for h in set(header) - required - (optional or set())
+               if not (pattern and re.fullmatch(pattern, h))}
     if unknown:
         raise ValueError(f"{path.name}: unrecognized column headings: {', '.join(sorted(unknown))}.")
     rows = []
@@ -95,12 +99,28 @@ def number(value: str, label: str) -> float:
     return result
 
 
+def load_configs(path: Path) -> list[tuple[str, dict]]:
+    """Return (solution name, settings) for the value column and each value_<name> column."""
+    rows = read_csv(path, {"setting", "value"}, {"description"}, VARIANT_COLUMN)
+    columns = [c for c in (rows[0][1] if rows else {}) if re.fullmatch(VARIANT_COLUMN, c)]
+    if len(columns) > MAX_SOLUTIONS - 1:
+        raise ValueError(f"{path.name}: use at most {MAX_SOLUTIONS - 1} value_ columns "
+                         f"({MAX_SOLUTIONS} solutions in one run).")
+    names = ["main"] + [re.fullmatch(VARIANT_COLUMN, c)[1] for c in columns]
+    if len({n.lower() for n in names}) != len(names):
+        raise ValueError(f"{path.name}: every value_ column needs a different name, other than value_main.")
+    return [(name, parse_settings(path, rows, column)) for name, column in zip(names, ["value"] + columns)]
+
+
 def load_config(path: Path) -> dict:
-    rows = read_csv(path, {"setting", "value"}, {"description"})
+    return load_configs(path)[0][1]
+
+
+def parse_settings(path: Path, rows, column: str) -> dict:
     config = {}
     for line, row in rows:
-        key, value = row["setting"], row["value"]
-        label = f"{path.name}, line {line} ({key})"
+        key, value = row["setting"], row[column] or row["value"]
+        label = f"{path.name}, line {line} ({key}{'' if column == 'value' else ', ' + column})"
         if key not in SETTINGS:
             raise ValueError(f"{label}: unknown setting. Keep the names in the example template.")
         if key in config:
@@ -116,11 +136,15 @@ def load_config(path: Path) -> dict:
     missing = set(SETTINGS) - set(config)
     if missing:
         raise ValueError(f"{path.name}: missing settings: {', '.join(sorted(missing))}.")
-    core.normalize_weights({k: config[f"weight_{k}"] for k in core.DEFAULT_WEIGHTS})
+    where = "" if column == "value" else f" ({column})"
+    try:
+        core.normalize_weights({k: config[f"weight_{k}"] for k in core.DEFAULT_WEIGHTS})
+    except ValueError as exc:
+        raise ValueError(f"{path.name}{where}: {exc}") from exc
     if config["minimum_score"] > 1:
-        raise ValueError("minimum_score must be between 0 and 1.")
+        raise ValueError(f"minimum_score{where} must be between 0 and 1.")
     if not 1 <= config["solver_time_limit_seconds"] <= 86400:
-        raise ValueError("solver_time_limit_seconds must be between 1 and 86400 (per solving stage).")
+        raise ValueError(f"solver_time_limit_seconds{where} must be between 1 and 86400 (per solving stage).")
     return config
 
 
@@ -175,10 +199,75 @@ def output_table(solution: pd.DataFrame) -> pd.DataFrame:
         columns=rename)[RESULT_COLUMNS].sort_values(["student_id", "local_id"])
 
 
-def make_report(config_path, problem_path, config, students, locals_, diagnostics, edges, result, warnings):
-    def ids(frame):
-        return frame[core.COL_ID].tolist()
+def solve(frame: pd.DataFrame, config: dict) -> dict:
+    """Score, filter and solve one solution's settings."""
+    weights = {k: config[f"weight_{k}"] for k in core.DEFAULT_WEIGHTS}
+    students, locals_, diagnostics, edges = core.build_diagnostics_and_edges(
+        frame, weights, relax_gender=not config["enforce_gender"],
+        relax_pets=not config["enforce_pets"], relax_mustmatch=not config["enforce_must_match"])
+    if not edges.empty:
+        edges = edges[edges.score >= config["minimum_score"]].copy()
+    solution = core.solve_lexi(students, locals_, edges, config["solver_time_limit_seconds"])
+    return {"config": config, "students": students, "locals": locals_, "diagnostics": diagnostics,
+            "edges": edges, "result": output_table(solution)}
 
+
+def describe(name: str, solved: dict, main_pairs: set) -> dict:
+    """Inputs and outputs of one solution, on the 0-1 scale used by the report and the browser chart."""
+    config, result = solved["config"], solved["result"]
+
+    def mean(column):
+        return float(result[column].mean()) if len(result) else None
+
+    return {
+        "name": name,
+        "weights": core.normalize_weights({k: config[f"weight_{k}"] for k in core.DEFAULT_WEIGHTS}),
+        "achieved": {k: mean(f"{k}_score") for k in core.DEFAULT_WEIGHTS},
+        "rules": {**{k: config[k] for k in CHECKS}, "minimum_score": config["minimum_score"]},
+        "students": len(solved["students"]), "locals": len(solved["locals"]), "matches": len(result),
+        "unmatched_students": len(solved["students"]) - len(result),
+        "unmatched_locals": len(solved["locals"]) - len(result), "eligible_pairs": len(solved["edges"]),
+        "score_mean": mean("score"), "score_min": float(result.score.min()) if len(result) else None,
+        "shared_with_main": len(set(zip(result.student_id, result.local_id)) & main_pairs),
+    }
+
+
+def weights_table(solutions: list[dict]) -> list[str]:
+    """Plain-text version of the browser chart: weights (input) left, achieved scores (output) right."""
+    info = [s["info"] for s in solutions]
+    names = [i["name"] for i in info]
+    width = max([7] + [len(n) + 1 for n in names])
+    half = width * len(names)
+
+    def cells(values):
+        return "".join(f"{'-' if v is None else v:>{width}}" for v in values)
+
+    def three(value):
+        return None if value is None else f"{value:.3f}"
+
+    def row(label, left, right):
+        return f"{label:<24}{left:>{half}} |{right:>{half}}"
+
+    lines = ["WEIGHTS (INPUT) AND ACHIEVED SCORES (OUTPUT)",
+             "Weights are normalized to sum to 1. Achieved: average criterion score of the selected pairs (0 to 1).",
+             row("", "input", "output")]
+    if len(names) > 1:
+        lines.append(row("", cells(names), cells(names)))
+    for k in core.DEFAULT_WEIGHTS:
+        lines.append(row(f"{k}", cells(three(i["weights"][k]) for i in info),
+                         cells(three(i["achieved"][k]) for i in info)))
+    lines.append(row("overall score (average)", "", cells(three(i["score_mean"]) for i in info)))
+    lines.append(row("minimum_score / lowest", cells(three(i["rules"]["minimum_score"]) for i in info),
+                     cells(three(i["score_min"]) for i in info)))
+    lines.append(row("students matched", "", cells(f"{i['matches']}/{i['students']}" for i in info)))
+    if len(names) > 1:
+        lines.append(row("pairs shared with main", "", cells(str(i["shared_with_main"]) for i in info)))
+    return lines
+
+
+def solution_sections(solved: dict, suffix: str) -> list[str]:
+    config, students, locals_ = solved["config"], solved["students"], solved["locals"]
+    diagnostics, edges, result = solved["diagnostics"], solved["edges"], solved["result"]
     groups = core.competing_groups(edges, zip(result.student_id, result.local_id)) if not edges.empty else []
 
     def blocked(identifier, column, others):
@@ -201,7 +290,7 @@ def make_report(config_path, problem_path, config, students, locals_, diagnostic
     def unmatched(frame, column, edge_column, others):
         selected = set(result[column])
         eligible = set(edges[edge_column]) if not edges.empty else set()
-        remaining = [v for v in ids(frame) if v not in selected]
+        remaining = [v for v in frame[core.COL_ID].tolist() if v not in selected]
         lines = []
         for identifier in remaining:
             if identifier not in eligible:
@@ -219,12 +308,7 @@ def make_report(config_path, problem_path, config, students, locals_, diagnostic
         details_s.append("  To match every student: relax a must-match, gender or pets rule for a student "
                          "named above, lower minimum_score, or add a suitable local.")
     weights = core.normalize_weights({k: config[f"weight_{k}"] for k in core.DEFAULT_WEIGHTS})
-    lines = ["PERFECTMATCH JYU - MATCHING REPORT", "Status: SUCCESS",
-             f"Run time (UTC): {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}",
-             f"Participants file: {problem_path.name}", f"Settings file: {config_path.name}",
-             f"Input SHA-256: {hashlib.sha256(problem_path.read_bytes()).hexdigest()}",
-             f"Settings SHA-256: {hashlib.sha256(config_path.read_bytes()).hexdigest()}", "",
-             "SUMMARY", f"Students: {len(students)}; locals: {len(locals_)}",
+    lines = ["", "SUMMARY" + suffix, f"Students: {len(students)}; locals: {len(locals_)}",
              f"Candidate pairs: {len(diagnostics)}; eligible pairs: {len(edges)}",
              f"Selected matches: {len(result)}",
              f"Unmatched students: {len(unmatched_s)}; unmatched locals: {len(unmatched_l)}"]
@@ -237,13 +321,14 @@ def make_report(config_path, problem_path, config, students, locals_, diagnostic
         lines.append(f"Score minimum / average / maximum: {result.score.min():.3f} / {result.score.mean():.3f} / {result.score.max():.3f}")
     else:
         lines.append("No matches were selected. The result CSV contains headings only.")
-    lines += ["", "UNMATCHED PARTICIPANTS"] + (details_s + details_l or ["  None."])
-    lines += ["", "SETTINGS USED", "Relative weights (normalized): " + "; ".join(f"{k} {v:.1%}" for k, v in weights.items())]
+    lines += ["", "UNMATCHED PARTICIPANTS" + suffix] + (details_s + details_l or ["  None."])
+    lines += ["", "SETTINGS USED" + suffix,
+              "Weights (normalized to sum to 1): " + "; ".join(f"{k} {v:.3f}" for k, v in weights.items())]
     for key in CHECKS:
         lines.append(f"{key}: {str(config[key]).upper()}")
     lines += [f"minimum_score: {config['minimum_score']:g}",
               f"solver_time_limit_seconds: {config['solver_time_limit_seconds']:g} per stage",
-              "", "PAIR CHECKS (counts may overlap)"]
+              "", "PAIR CHECKS (counts may overlap)" + suffix]
     if diagnostics.empty:
         lines.append("No student-local pairs exist. Add participants on the missing side.")
     else:
@@ -251,12 +336,29 @@ def make_report(config_path, problem_path, config, students, locals_, diagnostic
                   f"Failed pets check: {int((~diagnostics.pets_ok).sum())}",
                   f"Failed must-match check: {int((~(diagnostics.mustmatch_ok_student_vs_local & diagnostics.mustmatch_ok_local_vs_student)).sum())}",
                   f"Passed mandatory checks but below minimum_score: {int((diagnostics.mandatory_pass & (diagnostics.score < config['minimum_score'])).sum())}"]
-    disabled = [key for key in CHECKS if not config[key]]
-    if disabled or warnings:
-        lines += ["", "REVIEW NOTES"]
+    return lines
+
+
+def make_report(config_path, problem_path, solutions, warnings):
+    several = len(solutions) > 1
+    lines = ["PERFECTMATCH JYU - MATCHING REPORT", "Status: SUCCESS",
+             f"Run time (UTC): {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}",
+             f"Participants file: {problem_path.name}", f"Settings file: {config_path.name}",
+             f"Input SHA-256: {hashlib.sha256(problem_path.read_bytes()).hexdigest()}",
+             f"Settings SHA-256: {hashlib.sha256(config_path.read_bytes()).hexdigest()}"]
+    if several:
+        lines.append("Solutions: " + ", ".join(s["info"]["name"] for s in solutions))
+    lines += [""] + weights_table(solutions)
+    for s in solutions:
+        lines += solution_sections(s, f" - SOLUTION {s['info']['name']}" if several else "")
+    notes = []
+    for s in solutions:
+        disabled = [key for key in CHECKS if not s["config"][key]]
         if disabled:
-            lines.append("Checks switched OFF: " + ", ".join(disabled) + ". Review these preferences manually.")
-        lines.extend(warnings)
+            where = f" in solution {s['info']['name']}" if several else ""
+            notes.append(f"Checks switched OFF{where}: " + ", ".join(disabled) + ". Review these preferences manually.")
+    if notes or warnings:
+        lines += ["", "REVIEW NOTES"] + notes + warnings
     lines += ["", "HOW TO READ THIS RUN",
               "Each person appears in at most one selected pair.",
               "The solver first finds the most matches, then improves the lowest selected",
@@ -264,8 +366,11 @@ def make_report(config_path, problem_path, config, students, locals_, diagnostic
               "A score is a weighted similarity from 0 to 1, not a probability or guarantee.",
               "Text items are compared by exact wording, ignoring case; prose is not interpreted.",
               "If two must-match criteria are supplied, at least ONE must pass for that person.",
-              "Unknown pets do not block a pair. Age preferences affect scores, not eligibility.",
-              "Programme staff should review the suggestions before confirming any match."]
+              "Unknown pets do not block a pair. Age preferences affect scores, not eligibility."]
+    if several:
+        lines += ["Each solution uses its own settings column; blank cells repeat the value column.",
+                  "result.csv lists the pairs of every solution; its solution column says which."]
+    lines.append("Programme staff should review the suggestions before confirming any match.")
     return "\n".join(lines) + "\n"
 
 
@@ -273,33 +378,42 @@ def run(config_path: Path, problem_path: Path, result_path: Path, report_path: P
     paths = [p.resolve() for p in (config_path, problem_path, result_path, report_path)]
     if len(set(paths)) != 4:
         raise ValueError("The two inputs and two outputs must use four different file paths.")
-    config = load_config(config_path)
+    configs = load_configs(config_path)
     frame, warnings = load_problem(problem_path)
-    weights = {k: config[f"weight_{k}"] for k in core.DEFAULT_WEIGHTS}
-    students, locals_, diagnostics, edges = core.build_diagnostics_and_edges(
-        frame, weights, relax_gender=not config["enforce_gender"],
-        relax_pets=not config["enforce_pets"], relax_mustmatch=not config["enforce_must_match"])
-    if not edges.empty:
-        edges = edges[edges.score >= config["minimum_score"]].copy()
-    solution = core.solve_lexi(students, locals_, edges, config["solver_time_limit_seconds"])
-    result = output_table(solution)
-    report = make_report(config_path, problem_path, config, students, locals_, diagnostics, edges, result, warnings)
+    solutions = [solve(frame, config) for _, config in configs]
+    main_pairs = set(zip(solutions[0]["result"].student_id, solutions[0]["result"].local_id))
+    for (name, _), solved in zip(configs, solutions):
+        solved["info"] = describe(name, solved, main_pairs)
+    report = make_report(config_path, problem_path, solutions, warnings)
+    if len(solutions) == 1:
+        result = solutions[0]["result"]
+    else:
+        parts = [s["result"].assign(solution=s["info"]["name"]) for s in solutions if not s["result"].empty]
+        result = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=RESULT_COLUMNS)
+        result = result.reindex(columns=["solution"] + RESULT_COLUMNS)
     for path in (result_path, report_path):
         path.parent.mkdir(parents=True, exist_ok=True)
     result.to_csv(result_path, index=False, encoding="utf-8-sig", float_format="%.6f")
     report_path.write_text(report, encoding="utf-8")
-    result.attrs["summary"] = {
-        "students": len(students), "locals": len(locals_), "matches": len(result),
-        "unmatched_students": len(students) - len(result),
-        "unmatched_locals": len(locals_) - len(result), "eligible_pairs": len(edges),
-    }
+    main = solutions[0]["info"]
+    result.attrs["summary"] = {k: main[k] for k in ("students", "locals", "matches", "unmatched_students",
+                                                    "unmatched_locals", "eligible_pairs")}
+    result.attrs["solutions"] = [s["info"] for s in solutions]
     if not quiet:
-        print(f"SUCCESS: {len(result)} matches; {len(students) - len(result)} unmatched students; "
-              f"{len(locals_) - len(result)} unmatched locals.")
-        missing = len(students) - len(result)
-        if missing:
-            print(f"ATTENTION: {missing} student{'s' if missing > 1 else ''} could not be matched; "
-                  "the report explains why.")
+        several = len(solutions) > 1
+        if several:
+            print(f"SUCCESS: {len(solutions)} solutions.")
+        for s in solutions:
+            i = s["info"]
+            prefix = f"  {i['name']}: " if several else "SUCCESS: "
+            print(f"{prefix}{i['matches']} matches; {i['unmatched_students']} unmatched students; "
+                  f"{i['unmatched_locals']} unmatched locals.")
+        for s in solutions:
+            missing = s["info"]["unmatched_students"]
+            if missing:
+                where = f" in solution {s['info']['name']}" if several else ""
+                print(f"ATTENTION: {missing} student{'s' if missing > 1 else ''} could not be matched{where}; "
+                      "the report explains why.")
         print(f"Results: {result_path.resolve()}\nReport:  {report_path.resolve()}")
     return result
 

@@ -1,0 +1,14 @@
+setting,value,value_interests,value_background,description
+weight_profile,0.34,0.20,0.20,Weight from 0 to 1: matching profile types
+weight_hobbies,0.23,0.35,0.10,Weight from 0 to 1: hobbies compared with each person's preferred hobbies
+weight_appreciate,0.10,0.20,0.05,Weight from 0 to 1: shared qualities appreciated in a friend
+weight_languages,0.09,0.05,0.20,Weight from 0 to 1: shared native and daily-use languages
+weight_age,0.09,0.05,0.15,Weight from 0 to 1: age similarity and preferred age ranges
+weight_info,0.07,0.10,0.05,Weight from 0 to 1: shared information tags; free-text meaning is not interpreted
+weight_degree,0.05,0.03,0.15,Weight from 0 to 1: shared degree categories
+weight_field,0.03,0.02,0.10,Weight from 0 to 1: shared fields of science; each column's weights sum to 1
+enforce_gender,TRUE,,,Respect both people's gender preferences; a blank solution cell repeats the value column
+enforce_pets,TRUE,,,Reject has pets paired with avoid pets
+enforce_must_match,TRUE,,,Require at least one supplied must-match criterion per person
+minimum_score,0,,,Lowest permitted score from 0 to 1; raising it can leave more people unmatched
+solver_time_limit_seconds,60,,,Maximum seconds for each of the three solving stages

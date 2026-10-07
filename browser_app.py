@@ -18,6 +18,9 @@ import run_matching
 
 ASSETS = Path(__file__).resolve().parent
 MAX_REQUEST_BYTES = 10 * 1024 * 1024
+# The 21 x 28 round shows three weightings side by side.
+EXAMPLES = {"": ("config", "problem"), "round": ("config_three_solutions", "problem_21x28")}
+TEMPLATES = {"config.csv", "problem.csv", "config_three_solutions.csv"}
 
 
 class LocalServer(ThreadingHTTPServer):
@@ -69,14 +72,16 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self.valid_host():
             return
-        path = urlsplit(self.path).path
+        url = urlsplit(self.path)
+        path = url.path
         if path == "/":
             page = (ASSETS / "browser.html").read_text(encoding="utf-8")
             self.reply(200, page.replace("__SESSION_TOKEN__", self.server.token), "text/html; charset=utf-8")
-        elif path == "/api/example":
-            self.reply(200, {name: (ASSETS / "examples" / f"{name}.csv").read_text(encoding="utf-8-sig")
-                             for name in ("config", "problem")})
-        elif path in {"/templates/config.csv", "/templates/problem.csv"}:
+        elif path == "/api/example" and url.query.removeprefix("name=") in EXAMPLES:
+            files = EXAMPLES[url.query.removeprefix("name=")]
+            self.reply(200, {kind: (ASSETS / "examples" / f"{name}.csv").read_text(encoding="utf-8-sig")
+                             for kind, name in zip(("config", "problem"), files)})
+        elif path.startswith("/templates/") and Path(path).name in TEMPLATES:
             self.reply(200, (ASSETS / "examples" / Path(path).name).read_bytes(), "text/csv; charset=utf-8")
         elif path == "/manual.pdf":
             self.reply(200, (ASSETS / "manual.pdf").read_bytes(), "application/pdf")
@@ -131,7 +136,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 result_path, report_path = folder / "result.csv", folder / "report.txt"
                 result = run_matching.run(folder / "config.csv", folder / "problem.csv",
                                           result_path, report_path, quiet=True)
-                payload = {"summary": result.attrs["summary"], "pairs": result.to_dict(orient="records"),
+                payload = {"summary": result.attrs["summary"], "solutions": result.attrs["solutions"],
+                           "pairs": result.to_dict(orient="records"),
                            "csv": result_path.read_text(encoding="utf-8-sig"),
                            "report": report_path.read_text(encoding="utf-8")}
             # Temporary inputs and solver outputs have been removed before returning.

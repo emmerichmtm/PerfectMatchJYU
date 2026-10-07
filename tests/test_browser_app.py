@@ -63,6 +63,22 @@ class BrowserTests(unittest.TestCase):
         self.assertIn('Status: SUCCESS', data['report'])
         self.assertIn('L04:', data['report'])
 
+    def test_three_solution_example_returns_chart_data(self):
+        status, _, body = self.request('/api/example?name=round')
+        self.assertEqual(status, 200)
+        files = json.loads(body)
+        self.assertEqual(files['config'], (ROOT / 'examples/config_three_solutions.csv').read_text(encoding='utf-8-sig'))
+        self.assertEqual(self.request('/templates/config_three_solutions.csv')[2],
+                         (ROOT / 'examples/config_three_solutions.csv').read_bytes())
+        self.assertEqual(self.request('/api/example?name=missing')[0], 404)
+        status, _, body = self.request('/api/run', files)
+        self.assertEqual(status, 200, body)
+        data = json.loads(body)
+        self.assertEqual([s['name'] for s in data['solutions']], ['main', 'interests', 'background'])
+        self.assertEqual(sorted(data['solutions'][0]['weights']), sorted(data['solutions'][0]['achieved']))
+        self.assertEqual(len(data['pairs']), 63)
+        self.assertTrue(data['csv'].startswith('solution,student_id,local_id,score'))
+
     def test_zero_matches_and_custom_settings(self):
         data = self.example()
         data['config'] = data['config'].replace('minimum_score,0,', 'minimum_score,1,')

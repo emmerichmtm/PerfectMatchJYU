@@ -132,14 +132,14 @@ Keep the \file{setting}, \file{value} and \file{description} headings and all se
 \small
 \par\noindent\begin{tabularx}{\linewidth}{@{}p{52mm}p{15mm}Y@{}}
 \toprule\textbf{Setting} & \textbf{Default} & \textbf{Meaning}\\\midrule
-\file{weight_profile} & 34 & Similar profile tags.\\
-\file{weight_hobbies} & 23 & Hobbies against the other's preferred hobbies.\\
-\file{weight_appreciate} & 10 & Shared qualities appreciated in a friend.\\
-\file{weight_languages} & 9 & Shared native and daily-use languages.\\
-\file{weight_age} & 9 & Age similarity and preferred ranges.\\
-\file{weight_info} & 7 & Shared information tags.\\
-\file{weight_degree} & 5 & Shared degree categories.\\
-\file{weight_field} & 3 & Shared fields of science.\\\midrule
+\file{weight_profile} & 0.34 & Similar profile tags.\\
+\file{weight_hobbies} & 0.23 & Hobbies against the other's preferred hobbies.\\
+\file{weight_appreciate} & 0.10 & Shared qualities appreciated in a friend.\\
+\file{weight_languages} & 0.09 & Shared native and daily-use languages.\\
+\file{weight_age} & 0.09 & Age similarity and preferred ranges.\\
+\file{weight_info} & 0.07 & Shared information tags.\\
+\file{weight_degree} & 0.05 & Shared degree categories.\\
+\file{weight_field} & 0.03 & Shared fields of science.\\\midrule
 \file{enforce_gender} & TRUE & Apply both gender preferences.\\
 \file{enforce_pets} & TRUE & Reject pets/avoid-pets conflicts.\\
 \file{enforce_must_match} & TRUE & Apply each person's required criteria.\\
@@ -149,9 +149,9 @@ Keep the \file{setting}, \file{value} and \file{description} headings and all se
 \normalsize
 
 \section*{Change priorities one step at a time}
-The default weights add up to 100, so profile contributes 34\% of the overall score. They do not have to add up to 100: the tool scales them to shares of the total. Use non-negative numbers, with at least one weight above zero.
+Write weights between 0 and 1. The default weights add up to 1, so profile has weight 0.34 in the overall score. If your weights do not add up to 1, the tool rescales them so that they do. Use non-negative numbers, with at least one weight above zero.
 
-For example, to emphasise hobbies, change \file{weight_hobbies} from 23 to 30 and \file{weight_profile} from 34 to 27. Leave the other weights unchanged. Run again and compare both matches and the unmatched list. Decimal points or decimal commas are accepted in numeric setting cells; do not use thousands separators or percentage signs.
+For example, to emphasise hobbies, change \file{weight_hobbies} from 0.23 to 0.30 and \file{weight_profile} from 0.34 to 0.27. Leave the other weights unchanged. Run again and compare both matches and the unmatched list. Decimal points or decimal commas are accepted in numeric setting cells; do not use thousands separators or percentage signs.
 
 \section*{Preferences that must be respected}
 Leave the three \file{enforce_...} values at \file{TRUE} for ordinary use. \file{FALSE} switches that check off. The report names disabled checks. Use a disabled check only for a deliberate comparison and review the affected preferences before using its suggestions.
@@ -160,7 +160,38 @@ Leave the three \file{enforce_...} values at \file{TRUE} for ordinary use. \file
 The time limit applies separately to three solving stages. A 60-second setting can allow about three minutes of solving, plus data processing. If the tool cannot confirm a completed solution in time, the run fails with a clear message instead of reporting an unfinished solution as successful.
 
 \newpage
-\heading{5. Review the results}{Open the report before confirming any pair}
+\heading{5. Compare weightings}{Up to three solutions in one run}
+Optional: add up to two columns beside \file{value}, named \file{value_} plus a short name. Each column is one more solution, solved separately with its own weights and rules. A blank cell repeats the \file{value} column, so fill in only what differs. Names use letters, digits, \file{_} or \file{-}; the \file{value} column is called \file{main}. The browser offers \textbf{Download three-solution example}; its weights, each column summing to 1:
+
+\small
+\par\noindent\begin{tabularx}{\linewidth}{@{}p{42mm}rrrY@{}}
+\toprule\textbf{Setting} & \file{value} & \file{value_interests} & \file{value_background} & \textbf{Emphasis}\\\midrule
+\file{weight_profile} & 0.34 & 0.20 & 0.20 & \\
+\file{weight_hobbies} & 0.23 & 0.35 & 0.10 & interests\\
+\file{weight_appreciate} & 0.10 & 0.20 & 0.05 & interests\\
+\file{weight_languages} & 0.09 & 0.05 & 0.20 & background\\
+\file{weight_age} & 0.09 & 0.05 & 0.15 & background\\
+\file{weight_info} & 0.07 & 0.10 & 0.05 & \\
+\file{weight_degree} & 0.05 & 0.03 & 0.15 & background\\
+\file{weight_field} & 0.03 & 0.02 & 0.10 & background\\\midrule
+\file{enforce_gender} \dots & TRUE & \textit{blank} & \textit{blank} & same rules in all three\\\bottomrule
+\end{tabularx}
+\normalsize
+
+With several solutions, \file{result.csv} starts with a \file{solution} column naming the solution of each pair; filter on it in Excel. The report has one section per solution, and tabs on the page switch the pair table. Choose one solution before confirming pairs.
+
+\section*{Read the weights-and-achievement chart}
+After every run, \textbf{Weights and achievement} shows all inputs on the left and all outputs on the right, one coloured bar per solution, every value from 0 to 1.
+\begin{itemize}
+\item \textbf{Left, input:} each criterion's weight, normalized to sum to 1, and each solution's rules.
+\item \textbf{Right, output:} the average score that criterion reached in the selected pairs, the overall score and how many students were matched.
+\item The overall average equals the sum of weight times achieved score, so a large weight with a short achievement bar marks a criterion the participants rarely share.
+\item \textbf{Pairs as in main} counts the pairs an alternative shares with \file{main}. Few shared pairs mean the suggestions depend strongly on the weights; review them with extra care.
+\end{itemize}
+Hover over a row to see each solution's weight, achieved score and contribution. The report opens with the same comparison as a table.
+
+\newpage
+\heading{6. Review the results}{Open the report before confirming any pair}
 \begin{enumerate}
 \item Check that the page says \textbf{Matching complete} and the report's run time is the run you just made. The time is in UTC and may differ from your local clock.
 \item Check counts of students, locals, eligible pairs and selected matches. Unexpected counts can indicate an input or setting mistake.
@@ -191,7 +222,7 @@ An error appears & Correct the indicated input and choose the updated file again
 \normalsize
 
 \newpage
-\heading{6. Setup and technical reference}{For the colleague who prepares the computer}
+\heading{7. Setup and technical reference}{For the colleague who prepares the computer}
 \section*{Recommended: ready-to-run Windows package}
 The package targets 64-bit Windows and includes Python, the libraries and CBC. Extract it into a writable folder; keep \file{PerfectMatch.exe} with its \file{_internal} folder. No Caddy, package installation or administrator rights are needed for normal use. Test with the included example. The executable is unsigned; if organisational policy blocks it, ask IT to review it.
 
